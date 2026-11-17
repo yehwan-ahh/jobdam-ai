@@ -1,0 +1,26 @@
+[theme]
+showWidgetBorder = true
+baseRadius = "10px"
+buttonRadius = "10px"
+font = "'Noto Sans KR':https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap"
+baseFontSize = 15
+headingFontWeights = [700, 700, 700, 600, 600, 600]
+linkUnderline = false
+
+[theme.light]
+primaryColor = "#4F46E5"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F5F6FB"
+textColor = "#111827"
+borderColor = "#E5E7EB"
+linkColor = "#4F46E5"
+chartCategoricalColors = ["#4F46E5", "#F97316", "#10B981", "#A1A1AA"]
+
+[theme.dark]
+primaryColor = "#818CF8"
+backgroundColor = "#0B0D14"
+secondaryBackgroundColor = "#161A26"
+textColor = "#F3F4F6"
+borderColor = "#262B3A"
+linkColor = "#A5B4FC"
+chartCategoricalColors = ["#818CF8", "#FB923C", "#34D399", "#71717A"]
