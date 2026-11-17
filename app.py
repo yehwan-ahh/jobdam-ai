@@ -1,5 +1,6 @@
 import streamlit as st
 
+from utils.status import render_sidebar_status
 from utils.style import apply_style, card
 
 st.set_page_config(
@@ -55,8 +56,10 @@ page = st.navigation(
 st.session_state.visited.add(page.url_path or "home")
 apply_style()
 
+render_sidebar_status()
+
 with st.sidebar:
-    st.space("large")
+    st.space("medium")
     with card("sidebar", "white"):
         st.markdown("### 🪴")
         st.markdown("**오늘도 한 걸음**")

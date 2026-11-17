@@ -1,5 +1,6 @@
 import streamlit as st
 
+from utils.kosis import TABLES
 from utils.style import card, icon_tile
 
 st.title("데이터와 원칙 📎", anchor=False)
@@ -14,6 +15,18 @@ with card("sources", "white"):
             "제공기관": ["한국직업능력연구원", "국가데이터처"],
             "활용": ["직무별 업무·필요 역량·전망", "취업률·임금·창업 생존율 등 통계"],
             "이용조건": ["공공누리 제1유형(출처표시)", "KOSIS 통계정보활용약관"],
+        }
+    )
+
+st.space("small")
+with card("kosis-tables", "white"):
+    st.markdown("#### 사용할 KOSIS 통계표")
+    st.table(
+        {
+            "통계표": [f"[{t.title}]({t.url})" for t in TABLES.values()],
+            "작성기관·통계": [t.source for t in TABLES.values()],
+            "수록기간": [t.years for t in TABLES.values()],
+            "통계표 ID": [f"{t.org_id} / {t.tbl_id}" for t in TABLES.values()],
         }
     )
 
