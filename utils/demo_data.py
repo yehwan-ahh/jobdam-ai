@@ -14,18 +14,21 @@ PANELS: dict[str, list[dict[str, str]]] = {
     "게임 개발": [
         {
             "role": "게임 클라이언트 프로그래머",
+            "emoji": "🎮",
             "icon": ":material/sports_esports:",
             "says": "하루의 대부분은 기획서를 코드로 옮기고, 버그를 잡고, 빌드를 확인하는 일이에요. "
             "C++이나 C#, 엔진(Unity·Unreal) 경험이 가장 먼저 보입니다.",
         },
         {
             "role": "게임 기획자",
+            "emoji": "📝",
             "icon": ":material/edit_note:",
             "says": "재미를 숫자와 규칙으로 바꾸는 일이에요. 문서 작성과 데이터 분석, "
             "팀 간 조율 능력이 중요하고, 직접 만든 기획서 포트폴리오가 큰 무기가 됩니다.",
         },
         {
             "role": "게임 QA 엔지니어",
+            "emoji": "🐞",
             "icon": ":material/bug_report:",
             "says": "출시 전 품질을 책임져요. 꼼꼼함이 기본이고, 테스트 자동화를 익히면 "
             "개발 직군으로 넘어가는 다리가 되기도 합니다.",
@@ -34,18 +37,21 @@ PANELS: dict[str, list[dict[str, str]]] = {
     "데이터 분석": [
         {
             "role": "데이터 분석가",
+            "emoji": "📊",
             "icon": ":material/query_stats:",
             "says": "SQL로 데이터를 뽑고, 지표를 정의하고, 의사결정에 쓸 리포트를 만들어요. "
             "통계 감각과 '왜?'를 끝까지 묻는 태도가 중요합니다.",
         },
         {
             "role": "데이터 엔지니어",
+            "emoji": "🗄️",
             "icon": ":material/storage:",
             "says": "분석가가 쓸 데이터가 제때, 정확하게 쌓이도록 파이프라인을 만들어요. "
             "Python·SQL과 클라우드 기초가 출발점입니다.",
         },
         {
             "role": "머신러닝 엔지니어",
+            "emoji": "🤖",
             "icon": ":material/model_training:",
             "says": "모델을 만들고 실제 서비스에 붙이는 일을 해요. 수학·프로그래밍 기초에 "
             "더해 배포와 운영까지 경험해 보면 경쟁력이 커집니다.",
@@ -54,18 +60,21 @@ PANELS: dict[str, list[dict[str, str]]] = {
     "UX/UI 디자인": [
         {
             "role": "UX 디자이너",
+            "emoji": "🧠",
             "icon": ":material/psychology:",
             "says": "사용자를 인터뷰하고, 문제를 정의하고, 흐름을 설계해요. "
             "결과물보다 '왜 이렇게 설계했는가'를 설명하는 포트폴리오가 중요합니다.",
         },
         {
             "role": "UI 디자이너",
+            "emoji": "🎨",
             "icon": ":material/palette:",
             "says": "화면의 시각 언어와 디자인 시스템을 만들어요. Figma 숙련도와 "
             "개발자와 협업하는 감각이 기본기입니다.",
         },
         {
             "role": "UX 리서처",
+            "emoji": "🗣️",
             "icon": ":material/forum:",
             "says": "정성·정량 조사로 사용자의 진짜 문제를 찾아요. 심리학·통계 배경이 "
             "도움이 되고, 조사 설계 경험이 핵심 역량입니다.",
@@ -74,18 +83,21 @@ PANELS: dict[str, list[dict[str, str]]] = {
     "공공·행정": [
         {
             "role": "일반행정 공무원",
+            "emoji": "🏛️",
             "icon": ":material/account_balance:",
             "says": "정책 집행과 민원, 예산 업무를 맡아요. 시험 준비 기간과 "
             "그동안의 기회비용을 함께 따져 보는 게 중요합니다.",
         },
         {
             "role": "공공기관 사무직",
+            "emoji": "🏢",
             "icon": ":material/apartment:",
             "says": "NCS 기반 채용이 많아서 직무기술서를 꼼꼼히 읽는 게 출발점이에요. "
             "기관별 사업을 이해하고 지원하면 면접에서 차이가 납니다.",
         },
         {
             "role": "청년정책 코디네이터",
+            "emoji": "🤝",
             "icon": ":material/diversity_3:",
             "says": "지자체·센터에서 청년 대상 프로그램을 기획하고 운영해요. "
             "현장 경험과 기획서 작성 능력이 중요합니다.",

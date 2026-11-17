@@ -1,8 +1,9 @@
 import streamlit as st
 
 from utils.demo_data import DEMO_NOTICE, PANELS
+from utils.style import card, icon_tile
 
-st.title("직무 패널", anchor=False)
+st.title("직무 패널 👥", anchor=False)
 st.caption("관심 분야를 고르면 직무별 AI 페르소나가 패널로 등장해 이야기합니다.")
 
 st.info(DEMO_NOTICE, title="시연 모드", icon=":material/science:")
@@ -18,16 +19,20 @@ if not field:
     st.caption("위에서 관심 분야를 하나 골라 주세요.")
     st.stop()
 
-st.subheader(f"'{field}' 패널")
+st.space("small")
+st.subheader(f"'{field}' 패널", anchor=False)
 cols = st.columns(len(PANELS[field]), gap="medium")
-for col, persona in zip(cols, PANELS[field]):
-    with col.container(border=True, height="stretch"):
-        st.markdown(f"**:green[{persona['icon']}] {persona['role']}**")
-        st.caption("AI 페르소나 · 예시 답변")
+tones = [("sky", "navy"), ("mint", "teal"), ("peach", "peach")]
+for i, (col, persona) in enumerate(zip(cols, PANELS[field])):
+    color, tone = tones[i % len(tones)]
+    with card(f"persona-{i}", color, parent=col):
+        icon_tile(persona.get("emoji", "🧑‍💼"), f"persona-{i}", tone)
+        st.markdown(f"#### {persona['role']}")
+        st.badge("AI 페르소나 · 예시 답변", color="gray")
         st.write(persona["says"])
 
-st.space("small")
-st.subheader("패널에게 질문하기")
+st.space("medium")
+st.subheader("패널에게 질문하기", anchor=False)
 
 if "panel_messages" not in st.session_state:
     st.session_state.panel_messages = {}
