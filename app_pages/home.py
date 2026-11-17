@@ -38,7 +38,7 @@ with left.container(border=True, height="stretch"):
 with right.container(border=True, height="stretch"):
     st.markdown("### :material/timeline: 3년 뒤의 나")
     st.markdown(
-        "취업, 대학원, 창업 중 갈림길을 고르면 각 길을 걸은 **'3년 뒤의 나'**가 "
+        "취업, 대학원, 창업 중 갈림길을 고르면 각 길을 걸은 '**3년 뒤의 나**'가 "
         "공식 통계를 바탕으로 좋았던 점과 아쉬웠던 점을 들려줍니다."
     )
     st.page_link("app_pages/future.py", label="미래의 나 만나기", icon=":material/arrow_forward:")
