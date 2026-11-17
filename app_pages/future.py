@@ -24,18 +24,18 @@ with st.chat_message("assistant", avatar=str(future["icon"])):
     st.markdown(f"**{future['headline']}**")
     st.write(future["says"])
 
-good, bad = st.columns(2)
+good, bad = st.columns(2, gap="medium")
 with good.container(border=True, height="stretch"):
     st.markdown("**:green[:material/thumb_up:] 좋았던 점**")
     for item in future["pros"]:  # type: ignore[union-attr]
         st.markdown(f"- {item}")
 with bad.container(border=True, height="stretch"):
-    st.markdown("**:orange[:material/warning:] 아쉬웠던 점**")
+    st.markdown("**:gray[:material/info:] 아쉬웠던 점**")
     for item in future["cons"]:  # type: ignore[union-attr]
         st.markdown(f"- {item}")
 
 with st.container(border=True):
-    st.markdown("**:material/bar_chart: 함께 확인할 공식 통계 (KOSIS 연동 예정)**")
+    st.markdown("**:blue[:material/bar_chart:] 함께 확인할 공식 통계 (KOSIS 연동 예정)**")
     for item in future["check"]:  # type: ignore[union-attr]
         st.markdown(f"- {item}")
     st.caption("연동 후에는 실제 통계 수치와 출처 링크가 이곳에 표시됩니다.")

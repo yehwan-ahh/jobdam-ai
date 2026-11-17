@@ -14,15 +14,15 @@ st.table(
 )
 
 st.subheader("답변 원칙")
-c1, c2, c3 = st.columns(3)
+c1, c2, c3 = st.columns(3, gap="medium")
 with c1.container(border=True, height="stretch"):
-    st.markdown("**:material/link: 출처 표시**")
+    st.markdown("**:green[:material/link:] 출처 표시**")
     st.caption("모든 답변에 근거가 된 데이터 출처를 함께 보여 줍니다.")
 with c2.container(border=True, height="stretch"):
-    st.markdown("**:material/report: 추정은 추정이라고**")
+    st.markdown("**:green[:material/report:] 추정은 추정이라고**")
     st.caption("데이터로 확인할 수 없는 내용은 AI의 추정임을 분명히 밝힙니다.")
 with c3.container(border=True, height="stretch"):
-    st.markdown("**:material/lock: 개인정보 미수집**")
+    st.markdown("**:green[:material/lock:] 개인정보 미수집**")
     st.caption("실명·연락처 등 개인정보를 받거나 저장하지 않으며, 시연에는 가상 데이터만 씁니다.")
 
 st.warning(

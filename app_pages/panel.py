@@ -19,10 +19,10 @@ if not field:
     st.stop()
 
 st.subheader(f"'{field}' 패널")
-cols = st.columns(len(PANELS[field]))
+cols = st.columns(len(PANELS[field]), gap="medium")
 for col, persona in zip(cols, PANELS[field]):
     with col.container(border=True, height="stretch"):
-        st.markdown(f"**{persona['icon']} {persona['role']}**")
+        st.markdown(f"**:green[{persona['icon']}] {persona['role']}**")
         st.caption("AI 페르소나 · 예시 답변")
         st.write(persona["says"])
 
