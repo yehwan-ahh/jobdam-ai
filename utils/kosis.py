@@ -73,37 +73,87 @@ def is_enabled() -> bool:
     return get_secret("KOSIS_API_KEY") is not None
 
 
+META_URL = "https://kosis.kr/openapi/statisticsData.do"
+MAX_ITEMS = 4  # 한 번에 가져올 항목 수 (KOSIS 한 번 호출당 4만 셀 제한)
+
+
+def _get_json(url: str, params: dict[str, str]) -> tuple[Any, str | None]:
+    try:
+        res = requests.get(url, params=params, timeout=20)
+        res.raise_for_status()
+        data: Any = res.json()
+    except requests.RequestException:
+        return None, "KOSIS 서버에 연결하지 못했어요."
+    except ValueError:
+        return None, "KOSIS 응답을 읽지 못했어요."
+    if isinstance(data, dict) and data.get("err"):
+        return None, f"KOSIS 오류 {data.get('err')}: {data.get('errMsg', '')}"
+    return data, None
+
+
 @st.cache_data(ttl=60 * 60 * 24, show_spinner=False)
-def fetch(table_key: str, recent_periods: int = 3) -> pd.DataFrame | None:
-    """통계표를 DataFrame으로. 키가 없거나 실패하면 None (숫자를 지어내지 않습니다)."""
+def _auto_params(org_id: str, tbl_id: str) -> tuple[dict[str, str] | None, str | None]:
+    """통계표 메타(항목·분류)를 읽어 조회 코드를 정합니다.
+    항목은 앞에서 최대 4개, 첫 분류는 전체(ALL), 나머지 분류는 최상위 첫 값(대개 '계')."""
+    key = get_secret("KOSIS_API_KEY")
+    meta, err = _get_json(
+        META_URL,
+        {"method": "getMeta", "type": "ITM", "apiKey": key or "", "orgId": org_id, "tblId": tbl_id,
+         "format": "json", "jsonVD": "Y"},
+    )
+    if err or not isinstance(meta, list) or not meta:
+        return None, err or "통계표 구조(메타)를 찾지 못했어요."
+    items = [m["ITM_ID"] for m in meta if m.get("OBJ_ID") == "ITEM"][:MAX_ITEMS]
+    if not items:
+        return None, "항목 코드를 찾지 못했어요."
+    params = {"itmId": "+".join(items) + "+"}
+    objs: dict[str, list[dict[str, Any]]] = {}
+    for m in meta:
+        if m.get("OBJ_ID") != "ITEM":
+            objs.setdefault(str(m.get("OBJ_ID")), []).append(m)
+    ordered = sorted(objs.values(), key=lambda rows: int(rows[0].get("OBJ_ID_SN") or 99))
+    for level, rows in enumerate(ordered[:8], start=1):
+        if level == 1:
+            params["objL1"] = "ALL"
+        else:
+            top = [r for r in rows if not r.get("UP_ITM_ID")] or rows
+            params[f"objL{level}"] = str(top[0]["ITM_ID"])
+    return params, None
+
+
+@st.cache_data(ttl=60 * 60 * 24, show_spinner=False)
+def load(table_key: str, recent_periods: int = 3) -> tuple[pd.DataFrame | None, str | None]:
+    """통계표를 (DataFrame, 오류 안내)로. 실패하면 DataFrame은 None (숫자를 지어내지 않습니다)."""
     key = get_secret("KOSIS_API_KEY")
     table = TABLES.get(table_key)
     if not key or table is None:
-        return None
-    params = {
+        return None, "KOSIS 키가 없어요."
+    params = dict(table.params)
+    if not params:
+        params, err = _auto_params(table.org_id, table.tbl_id)
+        if params is None:
+            return None, err
+    query = {
         "method": "getList",
         "apiKey": key,
         "orgId": table.org_id,
         "tblId": table.tbl_id,
-        "itmId": "ALL",
-        "objL1": "ALL",
         "prdSe": "Y",
         "newEstPrdCnt": str(recent_periods),
         "format": "json",
         "jsonVD": "Y",
-        **table.params,
+        **params,
     }
-    try:
-        res = requests.get(URL, params=params, timeout=15)
-        res.raise_for_status()
-        data: Any = res.json()
-    except (requests.RequestException, ValueError):
-        return None
-    if not isinstance(data, list) or not data:  # 오류 응답은 {"err": "..", "errMsg": ".."} 형태
-        return None
+    data, err = _get_json(URL, query)
+    if err or not isinstance(data, list) or not data:
+        return None, err or "조회 결과가 비어 있어요."
     df = pd.DataFrame(data)
-    keep = [c for c in ("PRD_DE", "C1_NM", "C2_NM", "ITM_NM", "DT", "UNIT_NM") if c in df.columns]
+    keep = [c for c in ("PRD_DE", "C1_NM", "C2_NM", "C3_NM", "ITM_NM", "DT", "UNIT_NM") if c in df.columns]
     df = df[keep].copy()
     if "DT" in df.columns:
         df["DT"] = pd.to_numeric(df["DT"], errors="coerce")
-    return df
+    return df, None
+
+
+def fetch(table_key: str, recent_periods: int = 3) -> pd.DataFrame | None:
+    return load(table_key, recent_periods)[0]

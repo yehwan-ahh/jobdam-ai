@@ -66,10 +66,10 @@ if kosis.is_enabled():
         st.markdown("#### KOSIS 통계 미리보기")
         for key in kosis.FUTURE_TABLES.get(choice, []):
             t = kosis.TABLES[key]
-            df = kosis.fetch(key)
+            df, err = kosis.load(key)
             st.markdown(f"**{t.title}** · [원문 보기]({t.url})")
             if df is None or df.empty:
-                st.caption("이 통계표는 아직 불러오지 못했어요. (항목 코드 확인 필요)")
+                st.caption(f"이 통계표는 아직 불러오지 못했어요. ({err})")
             else:
                 st.dataframe(df.head(50), hide_index=True, alt=f"{t.title} 통계 표")
             st.caption(f"출처: {t.source}, KOSIS")
