@@ -14,7 +14,7 @@ if not llm.is_enabled():
 elif not careernet.is_enabled():
     st.info(
         "AI 답변은 켜져 있어요. 커리어넷 키가 연결되기 전까지는 공공데이터 근거 없이 답하므로, "
-        "구체적인 내용에는 (추정) 표시가 붙어요.",
+        "숫자나 단정적인 사실은 말하지 않아요.",
         title="커리어넷 연결 대기 중",
         icon=":material/hourglass_top:",
     )
