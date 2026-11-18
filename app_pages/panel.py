@@ -1,6 +1,6 @@
 import streamlit as st
 
-from utils import careernet, llm
+from utils import careernet, llm, majors, worknet
 from utils.demo_data import DEMO_NOTICE, PANELS
 from utils.evidence import panel_evidence, show_sources
 from utils.prompts import find_personal_info, panel_system
@@ -11,11 +11,11 @@ st.caption("관심 분야를 고르면 직무별 AI 페르소나가 패널로 �
 
 if not llm.is_enabled():
     st.info(DEMO_NOTICE, title="시연 모드", icon=":material/science:")
-elif not careernet.is_enabled():
+elif not (careernet.is_enabled() or worknet.is_enabled()):
     st.info(
-        "AI 답변은 켜져 있어요. 커리어넷 키가 연결되기 전까지는 공공데이터 근거 없이 답하므로, "
+        "AI 답변은 켜져 있어요. 커리어넷·워크넷 직업정보가 연결되기 전까지는 공공데이터 근거 없이 답하므로, "
         "숫자나 단정적인 사실은 말하지 않아요.",
-        title="커리어넷 연결 대기 중",
+        title="직업정보 연결 대기 중",
         icon=":material/hourglass_top:",
     )
 
@@ -47,6 +47,7 @@ for i, (col, persona) in enumerate(zip(cols, personas)):
 
 st.space("medium")
 st.subheader("패널에게 질문하기", anchor=False)
+my_major = majors.render_picker("panel")
 st.caption("실명, 연락처 같은 개인정보는 적지 말아 주세요. 적으면 AI에 보내지 않고 다시 물어봐요.")
 
 if "panel_messages" not in st.session_state:
@@ -73,14 +74,14 @@ if prompt:
 
     history.append({"role": "user", "content": prompt})
     with st.chat_message("assistant"):
-        with st.status("커리어넷 직업정보 찾는 중", type="step") as step:
-            evidence, found = panel_evidence(roles)
+        with st.status("공공 직업정보 찾는 중", type="step") as step:
+            evidence, found = panel_evidence(roles, my_major)
             if found:
-                st.caption("찾은 직업: " + ", ".join(found))
-                step.update(label="커리어넷 직업정보를 찾았어요", state="complete")
+                st.caption("찾은 근거: " + " · ".join(found))
+                step.update(label="공공 직업정보를 찾았어요", state="complete")
             else:
-                st.caption("커리어넷 연결 전이라 근거자료 없이 답해요.")
-                step.update(label="커리어넷 근거 없음 (연결 대기)", state="complete")
+                st.caption("직업정보 연결 전이라 근거자료 없이 답해요.")
+                step.update(label="공공데이터 근거 없음 (연결 대기)", state="complete")
 
         if llm.is_enabled():
             with st.spinner("패널이 답변을 준비하고 있어요"):
@@ -89,9 +90,9 @@ if prompt:
                 reply = result.text
                 st.markdown(reply)
                 if found:
-                    show_sources(found, careernet.SOURCE)
+                    show_sources(found)
                 else:
-                    st.caption(":material/info: 커리어넷 연결 전이라 공공데이터 근거 없이 나눈 일반적인 이야기예요.")
+                    st.caption(":material/info: 직업정보 연결 전이라 공공데이터 근거 없이 나눈 일반적인 이야기예요.")
                 st.caption(f"AI 답변 · {llm.provider_label()} · 사실과 다를 수 있으니 출처를 함께 확인해 주세요.")
             else:
                 st.warning(result.error or "답변을 만들지 못했어요.", icon=":material/error:")

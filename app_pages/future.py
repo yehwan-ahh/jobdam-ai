@@ -1,6 +1,6 @@
 import streamlit as st
 
-from utils import kosis, llm
+from utils import kosis, llm, majors
 from utils.demo_data import DEMO_NOTICE, FUTURES
 from utils.evidence import future_evidence, show_sources
 from utils.prompts import find_personal_info, future_system
@@ -77,6 +77,7 @@ if kosis.is_enabled():
 # ── 3년 뒤의 나에게 묻기 ───────────────────────────────────
 st.space("medium")
 st.subheader("3년 뒤의 나에게 물어보기", anchor=False)
+my_major = majors.render_picker("future")
 st.caption("실명, 연락처 같은 개인정보는 적지 말아 주세요.")
 
 if "future_messages" not in st.session_state:
@@ -104,7 +105,7 @@ if prompt:
     with st.chat_message("assistant", avatar=EMOJI.get(choice)):
         if llm.is_enabled():
             with st.spinner("3년 뒤의 내가 생각을 정리하고 있어요"):
-                evidence, used = future_evidence(choice)
+                evidence, used = future_evidence(choice, my_major)
                 result = llm.generate(future_system(choice, evidence), history[-10:])
             if not result.text:
                 st.warning(result.error or "답변을 만들지 못했어요.", icon=":material/error:")
@@ -113,7 +114,7 @@ if prompt:
             reply = result.text
             st.markdown(reply)
             if used:
-                show_sources(used, "KOSIS")
+                show_sources(used)
             else:
                 st.caption(":material/info: KOSIS 연결 전이라 공식 통계 없이 나눈 일반적인 이야기예요.")
             st.caption(f"AI 답변 · {llm.provider_label()} · 개인의 상황에 따라 결과는 달라질 수 있어요.")
