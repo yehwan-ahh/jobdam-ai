@@ -74,6 +74,7 @@ def is_enabled() -> bool:
 
 
 META_URL = "https://kosis.kr/openapi/statisticsData.do"
+COLUMN_NAMES = {"PRD_DE": "연도", "C1_NM": "구분1", "C2_NM": "구분2", "C3_NM": "구분3", "ITM_NM": "항목", "DT": "값", "UNIT_NM": "단위"}
 MAX_ITEMS = 4  # 한 번에 가져올 항목 수 (KOSIS 한 번 호출당 4만 셀 제한)
 
 
@@ -152,6 +153,7 @@ def load(table_key: str, recent_periods: int = 3) -> tuple[pd.DataFrame | None, 
     df = df[keep].copy()
     if "DT" in df.columns:
         df["DT"] = pd.to_numeric(df["DT"], errors="coerce")
+    df = df.rename(columns=COLUMN_NAMES)
     return df, None
 
 
