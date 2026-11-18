@@ -85,7 +85,7 @@ history: list[dict[str, str]] = st.session_state.future_messages.setdefault(choi
 
 for m in history:
     with st.chat_message(m["role"], avatar=EMOJI.get(choice) if m["role"] == "assistant" else None):
-        st.write(m["content"])
+        st.markdown(m["content"])
 
 prompt = st.chat_input(f"'{choice}'을 고른 3년 뒤의 나에게 물어보세요", key="future_input", submit_mode="disable")
 if prompt:
@@ -111,8 +111,11 @@ if prompt:
                 history.pop()
                 st.stop()
             reply = result.text
-            st.write(reply)
-            show_sources(used, "KOSIS")
+            st.markdown(reply)
+            if used:
+                show_sources(used, "KOSIS")
+            else:
+                st.caption(":material/info: KOSIS 연결 전이라 공식 통계 없이 나눈 일반적인 이야기예요.")
             st.caption(f"AI 답변 · {llm.provider_label()} · 개인의 상황에 따라 결과는 달라질 수 있어요.")
         else:
             reply = "지금은 시연 모드라 실제 답변을 만들지 않아요. AI 키가 연결되면 공식 통계를 바탕으로 이야기해 줄게요."

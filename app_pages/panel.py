@@ -55,7 +55,7 @@ history: list[dict[str, str]] = st.session_state.panel_messages.setdefault(field
 
 for msg in history:
     with st.chat_message(msg["role"]):
-        st.write(msg["content"])
+        st.markdown(msg["content"])
 
 prompt = st.chat_input(f"{field} 패널에게 궁금한 점을 물어보세요", key="panel_input", submit_mode="disable")
 if prompt:
@@ -84,12 +84,14 @@ if prompt:
 
         if llm.is_enabled():
             with st.spinner("패널이 답변을 준비하고 있어요"):
-                panel_role = f"'{field}' 분야 패널 ({', '.join(roles)})"
-                result = llm.generate(panel_system(panel_role, evidence), history[-10:])
+                result = llm.generate(panel_system(roles, evidence), history[-10:])
             if result.text:
                 reply = result.text
-                st.write(reply)
-                show_sources(found, careernet.SOURCE)
+                st.markdown(reply)
+                if found:
+                    show_sources(found, careernet.SOURCE)
+                else:
+                    st.caption(":material/info: 커리어넷 연결 전이라 공공데이터 근거 없이 나눈 일반적인 이야기예요.")
                 st.caption(f"AI 답변 · {llm.provider_label()} · 사실과 다를 수 있으니 출처를 함께 확인해 주세요.")
             else:
                 st.warning(result.error or "답변을 만들지 못했어요.", icon=":material/error:")
