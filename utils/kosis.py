@@ -28,7 +28,9 @@ class KosisTable:
     title: str
     source: str
     years: str
-    params: dict[str, str] = field(default_factory=dict)  # itmId, objL1.. 등 (확정 전에는 ALL)
+    params: dict[str, str] = field(default_factory=dict)  # itmId, objL1.. 직접 지정 (비우면 메타로 자동 결정)
+    item_keywords: tuple[str, ...] = ()  # 자동 결정 시 먼저 고를 항목명 키워드
+    all_level: int = 1  # 자동 결정 시 전체(ALL)로 펼칠 분류 단계
     confirmed: bool = False
 
     @property
@@ -53,7 +55,8 @@ TABLES: dict[str, KosisTable] = {
     ),
     # 임금 — 고용형태별근로실태조사(고용노동부)
     "wage_by_education_age": KosisTable(
-        "118", "DT_118N_PAY0004", "규모·학력·연령계층·성별 임금 및 근로조건", "고용노동부, 고용형태별노동실태조사", "2009~2025"
+        "118", "DT_118N_PAY0004", "규모·학력·연령계층·성별 임금 및 근로조건", "고용노동부, 고용형태별노동실태조사", "2009~2025",
+        item_keywords=("임금",), all_level=2,
     ),
     # 대학원 진학 — 고등교육기관 졸업자 취업통계(한국교육개발원)
     "grad_employment_by_field": KosisTable(
@@ -93,7 +96,9 @@ def _get_json(url: str, params: dict[str, str]) -> tuple[Any, str | None]:
 
 
 @st.cache_data(ttl=60 * 60 * 24, show_spinner=False)
-def _auto_params(org_id: str, tbl_id: str) -> tuple[dict[str, str] | None, str | None]:
+def _auto_params(
+    org_id: str, tbl_id: str, item_keywords: tuple[str, ...] = (), all_level: int = 1
+) -> tuple[dict[str, str] | None, str | None]:
     """통계표 메타(항목·분류)를 읽어 조회 코드를 정합니다.
     항목은 앞에서 최대 4개, 첫 분류는 전체(ALL), 나머지 분류는 최상위 첫 값(대개 '계')."""
     key = get_secret("KOSIS_API_KEY")
@@ -104,7 +109,10 @@ def _auto_params(org_id: str, tbl_id: str) -> tuple[dict[str, str] | None, str |
     )
     if err or not isinstance(meta, list) or not meta:
         return None, err or "통계표 구조(메타)를 찾지 못했어요."
-    items = [m["ITM_ID"] for m in meta if m.get("OBJ_ID") == "ITEM"][:MAX_ITEMS]
+    item_rows = [m for m in meta if m.get("OBJ_ID") == "ITEM"]
+    preferred = [m for m in item_rows if any(k in str(m.get("ITM_NM", "")) for k in item_keywords)]
+    rest = [m for m in item_rows if m not in preferred]
+    items = [m["ITM_ID"] for m in (preferred + rest)][:MAX_ITEMS]
     if not items:
         return None, "항목 코드를 찾지 못했어요."
     params = {"itmId": "+".join(items) + "+"}
@@ -114,8 +122,8 @@ def _auto_params(org_id: str, tbl_id: str) -> tuple[dict[str, str] | None, str |
             objs.setdefault(str(m.get("OBJ_ID")), []).append(m)
     ordered = sorted(objs.values(), key=lambda rows: int(rows[0].get("OBJ_ID_SN") or 99))
     for level, rows in enumerate(ordered[:8], start=1):
-        if level == 1:
-            params["objL1"] = "ALL"
+        if level == all_level:
+            params[f"objL{level}"] = "ALL"
         else:
             top = [r for r in rows if not r.get("UP_ITM_ID")] or rows
             params[f"objL{level}"] = str(top[0]["ITM_ID"])
@@ -131,7 +139,7 @@ def load(table_key: str, recent_periods: int = 3) -> tuple[pd.DataFrame | None, 
         return None, "KOSIS 키가 없어요."
     params = dict(table.params)
     if not params:
-        params, err = _auto_params(table.org_id, table.tbl_id)
+        params, err = _auto_params(table.org_id, table.tbl_id, table.item_keywords, table.all_level)
         if params is None:
             return None, err
     query = {
