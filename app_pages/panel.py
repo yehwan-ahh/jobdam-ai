@@ -75,7 +75,7 @@ if prompt:
     history.append({"role": "user", "content": prompt})
     with st.chat_message("assistant"):
         with st.status("공공 직업정보 찾는 중", type="step") as step:
-            evidence, found = panel_evidence(roles, my_major)
+            evidence, found = panel_evidence(roles, my_major, prompt, field)
             if found:
                 st.caption("찾은 근거: " + " · ".join(found))
                 step.update(label="공공 직업정보를 찾았어요", state="complete")

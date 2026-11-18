@@ -19,6 +19,7 @@ ORDER = [
     "utils.kosis",
     "utils.worknet",
     "utils.majors",
+    "utils.interviews",
     "utils.llm",
     "utils.evidence",
     "utils.status",

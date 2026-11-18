@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from utils import careernet, kosis, majors, worknet
+from utils import careernet, interviews, kosis, majors, worknet
 
 
 def _careernet(role: str) -> str | None:
@@ -27,7 +27,9 @@ def _worknet(role: str) -> str | None:
     return worknet.summarize(job.get("jobNm", role), data) if data else None
 
 
-def panel_evidence(roles: list[str], major: str | None = None) -> tuple[str | None, list[str]]:
+def panel_evidence(
+    roles: list[str], major: str | None = None, question: str = "", field: str = ""
+) -> tuple[str | None, list[str]]:
     """직무별 공공 직업정보 + (선택) 학과 상위 진출 직업. (근거 텍스트, 사용한 출처 목록)"""
     chunks: list[str] = []
     sources: list[str] = []
@@ -44,6 +46,11 @@ def panel_evidence(roles: list[str], major: str | None = None) -> tuple[str | No
                 chunks.append(f"[워크넷 · {role}]\n{text}")
                 if worknet.SOURCE not in sources:
                     sources.append(worknet.SOURCE)
+    if interviews.is_enabled():
+        text, label = interviews.evidence(question, [field, *roles] if field else roles)
+        if text and label:
+            chunks.append(text)
+            sources.append(label)
     major_line = majors.evidence(major)
     if major_line:
         chunks.append(major_line)
