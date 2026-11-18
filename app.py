@@ -1,7 +1,11 @@
 import streamlit as st
 
-from utils.status import render_sidebar_status
-from utils.style import apply_style, card
+from utils import hot_reload
+
+hot_reload.reload_if_changed()  # 새 배포의 utils 변경을 재시작 없이 반영
+
+from utils.status import render_sidebar_status  # noqa: E402
+from utils.style import apply_style, card  # noqa: E402
 
 st.set_page_config(
     page_title="잡담 | 청년 진로 탐색 AI",
@@ -66,6 +70,7 @@ with st.sidebar:
         st.caption("진로 고민은 천천히, 함께 나눠도 괜찮아요.")
 
 page.run()
+hot_reload.remember()
 
 st.space("medium")
 st.caption(
