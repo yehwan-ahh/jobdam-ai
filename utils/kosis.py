@@ -42,17 +42,17 @@ TABLES: dict[str, KosisTable] = {
     # 창업 — 기업생멸행정통계(국가데이터처)
     "startup_survival_by_industry": KosisTable(
         "101", "DT_2BD1103", "산업별 신생기업 생존율", "국가데이터처, 기업생멸행정통계", "2012~2024"
-    ),
+    , item_keywords=("생존율",)),
     "startup_survival_by_ceo_age": KosisTable(
         "101", "DT_2BD1104", "대표자 성·연령별 신생기업 생존율", "국가데이터처, 기업생멸행정통계", "2012~2024"
-    ),
+    , item_keywords=("생존율",)),
     # 취업/이직 — 일자리이동통계(국가데이터처)
     "job_mobility_by_age": KosisTable(
         "101", "DT_1JTJ_A001", "성별·연령별 일자리 이동", "국가데이터처, 일자리이동통계", "2017~2024"
-    ),
+    , item_keywords=("이동률", "유지율", "진입률")),
     "job_mobility_by_firm_size": KosisTable(
         "101", "DT_1JTJ_A011", "연령별·기업규모별 일자리 이동", "국가데이터처, 일자리이동통계", "2017~2024"
-    ),
+    , item_keywords=("이동률", "유지율", "진입률")),
     # 임금 — 고용형태별근로실태조사(고용노동부)
     "wage_by_education_age": KosisTable(
         "118", "DT_118N_PAY0004", "규모·학력·연령계층·성별 임금 및 근로조건", "고용노동부, 고용형태별노동실태조사", "2009~2025",
