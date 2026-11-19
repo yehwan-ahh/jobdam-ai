@@ -4,7 +4,7 @@ import streamlit as st
 
 from utils import interviews, llm, majors, training
 from utils.demo_data import DEMO_NOTICE, PANELS
-from utils.evidence import job_evidence, recommend_candidates, show_sources
+from utils.evidence import job_evidence, recommend_candidates
 from utils.prompts import answer_mode, find_personal_info, job_system, recommend_system
 from utils.style import card
 
@@ -34,6 +34,20 @@ def blocked_by_pii(text: str) -> bool:
                 icon=":material/lock:",
             )
     return bool(pii)
+
+
+BR = "  " + chr(10)  # 마크다운 줄바꿈
+
+
+def render_sources(used: list[str], found: list[str]) -> None:
+    """답변 아래 근거 영역: 어떤 내용이 어느 공공데이터에서 왔는지, 나머지는 AI 일반 지식."""
+    lines = used or ([f"참고한 자료: {' · '.join(found)}"] if found else [])
+    tail = (
+        "그 밖의 경험담·조언은 AI가 일반적인 경향을 바탕으로 정리했어요."
+        if lines
+        else "이번 대답은 공공데이터 근거 없이 AI 일반 지식으로 정리했어요."
+    )
+    st.caption(BR.join(["**근거**", *[f":material/link: {line}" for line in lines], tail]))
 
 
 st.title("직무 패널 👥", anchor=False)
@@ -84,6 +98,8 @@ if S.selected_job:
     for msg in history:
         with st.chat_message(msg["role"], avatar="🧑‍💼" if msg["role"] == "assistant" else None):
             st.markdown(msg["content"])
+            if msg["role"] == "assistant" and "sources" in msg:
+                render_sources(msg["sources"], msg.get("found", []))
 
     prompt = st.chat_input(f"{name} 선배에게 궁금한 점을 물어보세요", key="job_input", submit_mode="disable") or quick
     if prompt:
@@ -93,24 +109,25 @@ if S.selected_job:
             st.stop()
         history.append({"role": "user", "content": prompt})
         with st.chat_message("assistant", avatar="🧑‍💼"):
-            with st.status("공공 직업정보·현직자 인터뷰 찾는 중", type="step") as step_box:
-                evidence, sources = job_evidence(name, prompt, S.my_major)
-                st.caption("찾은 근거: " + (" · ".join(sources) if sources else "없음 (AI 일반 지식으로 답해요)"))
-                step_box.update(label="근거를 찾았어요" if sources else "공공데이터 근거 없음", state="complete")
             if llm.is_enabled():
-                with st.spinner("선배가 답변을 준비하고 있어요"):
-                    result = llm.generate(job_system(name, evidence), history[-10:])
-                if not result.text:
-                    st.warning(result.error or "답변을 만들지 못했어요.", icon=":material/error:")
+                with st.spinner("대답을 생각하는 중…"):
+                    evidence, sources = job_evidence(name, prompt, S.my_major)
+                    clean = [{"role": m["role"], "content": m["content"]} for m in history[-10:]]
+                    data, err = llm.generate_json(job_system(name, evidence), clean)
+                if data is None or not str(data.get("answer", "")).strip():
+                    st.warning(err or "답변을 만들지 못했어요.", icon=":material/error:")
                     history.pop()
                     st.stop()
-                reply = result.text
+                reply = str(data["answer"]).strip()
+                used = [
+                    f"{str(x.get('what', '')).strip()}: {str(x.get('from', '')).strip()}"
+                    for x in data.get("sources", [])
+                    if isinstance(x, dict) and x.get("from")
+                ]
                 st.markdown(reply)
-                show_sources(sources)
-                st.caption(
-                    f"AI 답변 · {llm.provider_label()} · 숫자는 공공데이터 출처가 있을 때만, "
-                    "'(일반적인 경향)'은 AI 일반 지식이에요."
-                )
+                render_sources(used, sources)
+                history.append({"role": "assistant", "content": reply, "sources": used, "found": sources})
+                st.stop()
             else:
                 reply = f"지금은 시연 모드예요. AI 키가 연결되면 '{name}' 선배가 공공데이터와 현직자 인터뷰를 바탕으로 답해 드려요."
                 st.write(reply)
