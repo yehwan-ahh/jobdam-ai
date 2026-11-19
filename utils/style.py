@@ -69,6 +69,13 @@ h1, h2, h3 {{ letter-spacing: -0.02em; }}
     min-height: 2.8rem; font-size: 0.98rem; font-weight: 600; color: #333333; background: #FFFFFF; border-color: #CFCFCB;
 }}
 [class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button p {{ font-size: 0.98rem; font-weight: 600; }}
+[class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button[aria-checked="true"],
+[class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button[aria-pressed="true"] {{
+    background: #111111 !important; color: #FFFFFF !important; border-color: #111111 !important;
+}}
+[class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button[aria-checked="true"] p,
+[class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button[aria-pressed="true"] p {{ color: #FFFFFF !important; }}
+[class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button:hover {{ border-color: #111111; }}
 [data-testid="stBaseButton-segmented_controlActive"] {{ background: #111111 !important; color: #FFFFFF !important; border-color: #111111 !important; }}
 [data-testid="stBaseButton-segmented_controlActive"] p {{ color: #FFFFFF !important; }}
 
