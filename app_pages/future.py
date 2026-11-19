@@ -169,9 +169,18 @@ if "future_messages" not in st.session_state:
     st.session_state.future_messages = {}
 history: list[dict[str, str]] = st.session_state.future_messages.setdefault(choice, [])
 
+st.session_state.chosen_path = choice  # 로드맵 등 다른 페이지가 이어서 쓰도록 기억
 for m in history:
     with st.chat_message(m["role"], avatar=EMOJI.get(choice) if m["role"] == "assistant" else None):
         st.markdown(m["content"])
+        if m["role"] == "assistant" and m.get("sources"):
+            show_sources(m["sources"])  # 지난 답변도 출처를 계속 보여 줘요
+if history and history[-1]["role"] == "user":
+    with st.container(horizontal=True, vertical_alignment="center"):
+        st.caption(":material/info: 마지막 질문의 대답이 중간에 끊겼어요.")
+        if st.button("다시 물어보기", icon=":material/refresh:", key="retry_future_q"):
+            st.session_state.retry_future_q = history.pop()["content"]
+            st.rerun()
 
 if st.session_state.pop("future_jump", False) and not history:
     st.html(
@@ -181,7 +190,7 @@ if st.session_state.pop("future_jump", False) and not history:
         unsafe_allow_javascript=True,
     )
 
-prompt = st.chat_input(f"'{choice}'을 고른 3년 뒤의 나에게 물어보세요", key="future_input", submit_mode="disable")
+prompt = st.chat_input(f"'{choice}'을 고른 3년 뒤의 나에게 물어보세요", key="future_input", submit_mode="disable") or st.session_state.pop("retry_future_q", None)
 if prompt:
     with st.chat_message("user"):
         st.write(prompt)
@@ -199,7 +208,8 @@ if prompt:
         if llm.is_enabled():
             with st.spinner("3년 뒤의 내가 생각을 정리하고 있어요"):
                 evidence, used = future_evidence(choice, my_major)
-                result = llm.generate(future_system(choice, evidence, target_job, profile.prompt_block(target_job)), history[-10:])
+                clean = [{"role": m["role"], "content": m["content"]} for m in history[-10:]]
+                result = llm.generate(future_system(choice, evidence, target_job, profile.prompt_block(target_job)), clean)
             if not result.text:
                 st.warning(result.error or "답변을 만들지 못했어요.", icon=":material/error:")
                 history.pop()
@@ -212,6 +222,17 @@ if prompt:
                 st.caption(":material/info: KOSIS 연결 전이라 공식 통계 없이 나눈 일반적인 이야기예요.")
             st.caption(f"AI 답변 · {llm.provider_label()} · 개인의 상황에 따라 결과는 달라질 수 있어요.")
         else:
+            used = []
             reply = "지금은 시연 모드라 실제 답변을 만들지 않아요. AI 키가 연결되면 공식 통계를 바탕으로 이야기해 줄게요."
             st.write(reply)
-    history.append({"role": "assistant", "content": reply})
+    history.append({"role": "assistant", "content": reply, "sources": used})
+
+# ── 다음 단계: 로드맵 ────────────────────────────────────────
+if history:
+    st.space("small")
+    with st.container(key="cta-roadmap", horizontal=True, vertical_alignment="center"):
+        with st.container():
+            st.markdown(f"#### 🛣️ '{choice}' 길로 '{target_job}'까지 가는 3년 로드맵을 그려 볼까요?")
+            st.caption("간이검사 결과와 지금 대화한 길을 바탕으로 할 일·자격·국비 교육을 이정표로 정리해 줘요.")
+        if st.button("커리어 로드맵 그리기", icon=":material/route:", key="cta-roadmap-go"):
+            st.switch_page("app_pages/roadmap.py")

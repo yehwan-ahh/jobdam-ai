@@ -80,6 +80,20 @@ h1, h2, h3 {{ letter-spacing: -0.02em; }}
 .st-key-cta-future button {{ background: #FFFFFF !important; border-color: #FFFFFF !important; min-height: 3rem; }}
 .st-key-cta-future button p {{ color: #111111 !important; font-weight: 800; font-size: 1.02rem; }}
 
+.st-key-cta-roadmap {{ background: #111111; border-radius: 20px; padding: 1.2rem 1.4rem; box-shadow: 0 10px 28px rgba(0,0,0,0.18); }}
+.st-key-cta-roadmap p, .st-key-cta-roadmap h4 {{ color: #FFFFFF !important; }}
+.st-key-cta-roadmap [data-testid="stCaptionContainer"] p {{ color: #CFCFCB !important; }}
+.st-key-cta-roadmap button {{ background: #FFFFFF !important; border-color: #FFFFFF !important; min-height: 3rem; }}
+.st-key-cta-roadmap button p {{ color: #111111 !important; font-weight: 800; }}
+
+/* 휴대폰: 간이검사 다섯 칸을 한 줄에 */
+@media (max-width: 640px) {{
+    [class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button {{ min-height: 2.6rem; padding: 0.2rem 0.15rem; }}
+    [class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button p {{ font-size: 0.72rem; letter-spacing: -0.03em; white-space: nowrap; }}
+    [class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] > div {{ flex-wrap: nowrap !important; }}
+    .jd-q {{ font-size: 1.02rem; }}
+}}
+
 /* 메인 로고: 둥근 모서리 */
 [class*="st-key-card-white-intro-hero"] img {{ border-radius: 16px; }}
 

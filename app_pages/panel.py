@@ -21,8 +21,14 @@ S.setdefault("panel_opinions", {})  # 직무별 '다른 선배 한마디' {quest
 def related_jobs(job: str, n: int = 2) -> list[str]:
     """함께 의견을 들을 관련 직무: 패널 추천 → 고용24 이름이 비슷한 직업 → 같은 학과 상위 진출 직업 → 기본 패널 직무.
     (학과 상위 진출 직업에는 사무직처럼 결이 다른 직업도 섞여 있어 유사 직업을 먼저 봅니다.)"""
-    pool: list[str] = [r["name"] for r in S.panel_recs]
-    if worknet.is_enabled():
+    pool: list[str] = []
+    card = new_jobs.get(job)
+    if card:  # AI 시대 새 직업: 같은 분야 → 도메인이 겹치는 새 직업 → 가장 가까운 공공 직업
+        same = [j["name"] for j in new_jobs.jobs() if j["category"] == card["category"]]
+        near = [j["name"] for j, _ in new_jobs.match(card.get("domains", []), card.get("skills", []))]
+        pool += near[:6] + same + [card["related"]]
+    pool += [r["name"] for r in S.panel_recs]
+    if worknet.is_enabled() and not card:
         pool += [j.get("jobNm", "") for j in (worknet.search_jobs(job, limit=5) or [])]
     if S.my_major:
         pool += majors.top_jobs(S.my_major)
@@ -181,6 +187,13 @@ if S.selected_job:
             st.markdown(msg["content"])
             if msg["role"] == "assistant" and "sources" in msg:
                 render_sources(msg["sources"], msg.get("found", []))
+    if history and history[-1]["role"] == "user":
+        # 답을 만드는 중에 다른 버튼을 눌러 대답이 끊긴 경우
+        with st.container(horizontal=True, vertical_alignment="center"):
+            st.caption(":material/info: 마지막 질문의 대답이 중간에 끊겼어요.")
+            if st.button("다시 물어보기", icon=":material/refresh:", key="retry_job_q"):
+                S.retry_q = history.pop()["content"]
+                st.rerun()
 
     # ── 패널 토론: 같은 질문을 다른 직무 선배 2명에게도 ─────────────
     opinions = S.panel_opinions.get(name)
@@ -262,6 +275,7 @@ if S.selected_job:
             submit_mode="disable",
         )
         or quick
+        or S.pop("retry_q", None)
     )
     if prompt:
         with st.chat_message("user"):

@@ -21,7 +21,9 @@ with c1:
     job = st.selectbox("목표 직무", options, index=0 if default_job else None, placeholder="직무를 고르거나 입력하세요",
                        accept_new_options=True, key="rm_job")
 with c2:
-    path = st.segmented_control("갈림길", list(FUTURES.keys()), default=S.get("future_choice") or "취업/이직", key="rm_path")
+    _rec = profile.recommend_path(profile.get()) if profile.get() else []
+    _default = S.get("chosen_path") or (_rec[0]["path"] if _rec else "취업/이직")
+    path = st.segmented_control("갈림길", list(FUTURES.keys()), default=_default, key="rm_path")
 with c3:
     start = st.selectbox("지금 나는", roadmap.STARTS, index=2, key="rm_start")
 me = profile.get()
