@@ -223,21 +223,44 @@ def render_byok_sidebar() -> None:
             st.caption("키가 없어서 시연 모드로 보여 줘요.")
 
 
-def generate_json(system: str, messages: list[dict[str, str]]) -> tuple[dict | None, str | None]:
-    """JSON 객체로 답을 받습니다. (데이터, 오류 안내)"""
+def _parse_json(text: str) -> dict:
+    """JSON 객체로 읽고, 실패하면 글 자체를 대답으로 씁니다(화면이 멈추지 않게)."""
     import json
     import re
 
-    result = generate(system, messages, json_mode=True)
-    if not result.text:
-        return None, result.error
-    text = result.text.strip()
+    text = text.strip()
     match = re.search(r"\{.*\}", text, re.DOTALL)
     try:
         data = json.loads(match.group(0) if match else text)
     except (ValueError, AttributeError):
-        # JSON이 아니면 글 자체를 대답으로 씁니다(화면이 멈추지 않게).
-        return {"answer": text, "message": text, "jobs": [], "sources": []}, None
+        data = None
     if not isinstance(data, dict):
-        return {"answer": text, "message": text, "jobs": [], "sources": []}, None
-    return data, None
+        return {"answer": text, "message": text, "jobs": [], "sources": []}
+    return data
+
+
+def generate_json(system: str, messages: list[dict[str, str]]) -> tuple[dict | None, str | None]:
+    """JSON 객체로 답을 받습니다. (데이터, 오류 안내)"""
+    result = generate(system, messages, json_mode=True)
+    if not result.text:
+        return None, result.error
+    return _parse_json(result.text), None
+
+
+def generate_json_many(systems: list[str], messages: list[dict[str, str]]) -> list[tuple[dict | None, str | None]]:
+    """여러 페르소나에게 같은 질문을 동시에(병렬) 묻습니다. 사용자 한 번의 요청이라 질문 수는 1로 셉니다.
+    키·세션 정보는 메인 스레드에서 미리 읽고, 스레드에서는 API 호출만 합니다."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    source = key_source()
+    if source is None:
+        return [(None, "AI 키가 없어 시연 모드로 답하고 있어요.")] * len(systems)
+    if source == "team" and remaining_team_questions() <= 0:
+        return [(None, "이번 접속에서 쓸 수 있는 질문 수를 모두 썼어요.")] * len(systems)
+    api_key = (_byok_key() if source == "byok" else _team_key()) or ""
+    call, name = _PROVIDERS[provider()][3], model()
+    with ThreadPoolExecutor(max_workers=max(1, len(systems))) as pool:
+        results = list(pool.map(lambda sys_: call(api_key, name, sys_, messages, json_mode=True), systems))
+    if source == "team" and any(r.text for r in results):
+        st.session_state[USAGE_STATE_KEY] = int(st.session_state.get(USAGE_STATE_KEY, 0)) + 1
+    return [(_parse_json(r.text), None) if r.text else (None, r.error) for r in results]

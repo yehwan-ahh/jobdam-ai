@@ -64,7 +64,7 @@ def startup() -> PathStats:
     )
     order = ["1년", "2년", "3년", "4년", "5년"]
     return PathStats(
-        metrics=[("30대 미만 대표, 3년 생존율", _pct(youth.get("3년"))), ("전체 창업, 5년 생존율", _pct(total.get("5년")))],
+        metrics=[("30대 미만 대표, 3년 생존율", _pct(youth.get("3년"))), ("전체 창업, 3년 생존율", _pct(total.get("3년")))],
         chart=_bar(chart_df, "기간", "DT", "구분", "30대 미만 대표", "생존율(%)", order),
         caption="창업 후 해마다 살아남은 기업 비율",
         source=f"{year}년 · {t.source}",

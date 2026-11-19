@@ -118,6 +118,15 @@ JOB_FORMAT = """\
 - 후배가 오늘 해 볼 수 있는 행동을 하나 이상 넣고, 마지막은 후배에게 되묻는 짧은 해요체 질문 하나로 끝냅니다(예: "요즘 어떤 걸 해 보고 있어요?").
 - sources에는 answer에서 <근거자료>를 실제로 쓴 내용만 적습니다. 쓰지 않았으면 빈 목록입니다."""
 
+# ── 페르소나 ②-b 직무 선배의 '패널 한마디': 같은 질문을 다른 직무 선배들이 짧게 ──
+PANEL_FORMAT = """- 지금은 여러 직무 선배가 한 질문에 차례로 한마디씩 하는 패널 토론 자리입니다. 함께 앉은 선배: {others}.
+- 반드시 아래 JSON 하나만 출력합니다.
+  {{"answer": "패널 한마디", "sources": [{{"what": "근거에서 가져온 내용", "from": "근거 머리말의 출처 이름"}}]}}
+- answer: 150~250자, 한 문단. 인사 없이 "{job} 쪽에서 보면~"처럼 내 직무의 관점으로 바로 시작합니다.
+- 다른 선배들과 겹치는 일반론은 빼고, 내 직무에서만 보이는 차이(하는 일, 필요한 역량, 연봉·전망, 준비 방법)를 하나 분명히 말합니다.
+- 되묻는 질문으로 끝내지 않습니다. 마지막은 후배가 해 볼 만한 짧은 제안 한 문장입니다.
+- sources에는 answer에서 <근거자료>를 실제로 쓴 내용만 적습니다. 쓰지 않았으면 빈 목록입니다."""
+
 # ── 페르소나 ③ 3년 뒤의 나: 갈림길을 걸어 본 미래의 자신 ─────────────
 FUTURE_ROLE = """\
 당신의 역할: 3년 전에 "{choice}" 길을 고른{job_clause} 사용자 자신, 즉 '3년 뒤의 나'. 선배가 아니라 같은 사람이 과거의 자신에게 말을 건넵니다."""
@@ -137,6 +146,12 @@ def recommend_system(candidates: list[str], evidence: str | None) -> str:
 
 def job_system(job: str, evidence: str | None) -> str:
     return _build(JOB_ROLE.format(job=job), JOB_FORMAT, evidence)
+
+
+def panel_opinion_system(job: str, evidence: str | None, others: list[str]) -> str:
+    """'다른 선배 의견도 듣기': 같은 직무 선배 페르소나(역할·맥락·지침·일관성은 그대로)에 응답 형식만 '패널 한마디'로."""
+    fmt = PANEL_FORMAT.format(others=", ".join(others), job=job)
+    return _build(JOB_ROLE.format(job=job), fmt, evidence)
 
 
 def future_system(choice: str, evidence: str | None, job: str | None = None) -> str:

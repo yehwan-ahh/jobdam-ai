@@ -2,10 +2,10 @@
 
 import streamlit as st
 
-from utils import interviews, llm, majors, training
+from utils import interviews, llm, majors, training, worknet
 from utils.demo_data import DEMO_NOTICE, PANELS
 from utils.evidence import job_evidence, recommend_candidates
-from utils.prompts import answer_mode, find_personal_info, job_system, recommend_system
+from utils.prompts import answer_mode, find_personal_info, job_system, panel_opinion_system, recommend_system
 from utils.style import card
 
 # ── 상태 ─────────────────────────────────────────────────────
@@ -15,6 +15,25 @@ S.setdefault("panel_recs", [])  # 추천 [{name, why, basis}]
 S.setdefault("selected_job", None)  # 선택한 직무 {name, why, basis}
 S.setdefault("panel_job_chats", {})  # 직무별 대화
 S.setdefault("my_major", None)  # 고른 학과(위젯이 사라져도 유지)
+S.setdefault("panel_opinions", {})  # 직무별 '다른 선배 한마디' {question, items}
+
+
+def related_jobs(job: str, n: int = 2) -> list[str]:
+    """함께 의견을 들을 관련 직무: 패널 추천 → 같은 학과 상위 진출 직업 → 고용24 유사 직업 → 기본 패널 직무."""
+    pool: list[str] = [r["name"] for r in S.panel_recs]
+    if S.my_major:
+        pool += majors.top_jobs(S.my_major)
+    if worknet.is_enabled():
+        pool += [j.get("jobNm", "") for j in (worknet.search_jobs(job, limit=5) or [])]
+    for personas in PANELS.values():
+        pool += [p["role"] for p in personas]
+    picked: list[str] = []
+    for cand in pool:
+        if cand and cand != job and job not in cand and cand not in picked:
+            picked.append(cand)
+        if len(picked) == n:
+            break
+    return picked
 
 
 def choose(job: dict) -> None:
@@ -136,6 +155,51 @@ if S.selected_job:
             st.markdown(msg["content"])
             if msg["role"] == "assistant" and "sources" in msg:
                 render_sources(msg["sources"], msg.get("found", []))
+
+    # ── 패널 토론: 같은 질문을 다른 직무 선배 2명에게도 ─────────────
+    opinions = S.panel_opinions.get(name)
+    if opinions:
+        st.markdown(f"**👥 다른 선배들의 한마디** · :gray[“{opinions['question']}”]")
+        cols = st.columns(len(opinions["items"]), gap="medium")
+        for col, op in zip(cols, opinions["items"]):
+            with card(f"op-{op['job']}", "white", parent=col):
+                st.markdown(f"##### 🧑‍💼 {op['job']} 선배")
+                st.markdown(op["answer"])
+                render_sources(op["used"], op["found"])
+                st.button(
+                    "이 선배와 대화하기",
+                    key=f"op-go-{op['job']}",
+                    icon=":material/forum:",
+                    on_click=choose,
+                    args=({"name": op["job"], "why": f"'{name}' 선배와 대화하다가 함께 들어 본 직무예요.", "basis": ""},),
+                    width="stretch",
+                )
+    if llm.is_enabled():
+        last_q = next((m["content"] for m in reversed(history) if m["role"] == "user"), None)
+        ask_panel = st.button(
+            "다른 직무 선배 의견도 듣기",
+            icon=":material/groups:",
+            help="방금 한 질문(없으면 '이 직무 어때요?')을 관련 직무 선배 2명에게도 물어 나란히 비교해요.",
+        )
+        if ask_panel:
+            question = last_q or "이 직무 어때요?"
+            others = related_jobs(name)
+            with st.spinner(f"{', '.join(others)} 선배에게도 물어보는 중…"):
+                bundles = [job_evidence(o, question, S.my_major) for o in others]
+                systems = [
+                    panel_opinion_system(o, ev, [name] + [x for x in others if x != o])
+                    for o, (ev, _) in zip(others, bundles)
+                ]
+                results = llm.generate_json_many(systems, [{"role": "user", "content": question}])
+            items = []
+            for o, (_, found), (data, err) in zip(others, bundles, results):
+                answer, used = parse_answer(data)
+                if answer:
+                    items.append({"job": o, "answer": answer, "used": used, "found": found})
+            if items:
+                S.panel_opinions[name] = {"question": question, "items": items}
+                st.rerun()
+            st.warning("다른 선배들의 의견을 받지 못했어요. 잠시 뒤 다시 눌러 주세요.", icon=":material/error:")
 
     if training.is_enabled():
         st.space("small")
