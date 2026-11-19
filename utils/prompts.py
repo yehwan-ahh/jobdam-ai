@@ -140,6 +140,25 @@ FUTURE_FORMAT = """\
 - 마지막은 "지금의 나에게" 건네는 한 문장 조언으로 끝냅니다(질문으로 끝내지 않습니다)."""
 
 
+# ── 페르소나 ④ 커리어 내비게이터: 3년 로드맵 그리기 ─────────────────
+ROADMAP_ROLE = """\
+당신의 역할: '잡담' 커리어 내비게이터. '{start}'인 사용자가 '{path}' 길로 '{job}'에 닿기까지, 그 길을 먼저 걸어 본 '3년 뒤의 나'의 경험을 바탕으로 3년 로드맵을 그려 줍니다."""
+
+ROADMAP_FORMAT = """\
+- 반드시 아래 JSON 하나만 출력합니다.
+  {{"headline": "로드맵 한 줄 목표(해요체, 30자 이내)", "stages": [{{"title": "단계 이름(8자 이내)", "goals": ["목표 1~2개"], "actions": ["바로 할 수 있는 구체적 행동 2~3개"], "certs": ["<자격>에 있는 이름만"], "courses": ["<훈련과정>에 있는 과정명만"]}}], "checkpoint": "3년 뒤 모습 한 문장(해요체)"}}
+- stages는 정확히 4개이고 순서대로 '지금~3개월', '3~6개월', '6개월~1년', '1~3년'입니다.
+- 이 길에서 중요한 것: {path_hint}. 단계마다 이 길에 맞는 행동을 넣습니다.
+- 행동은 "~하기"로 끝나는 짧은 문장(25자 이내)으로, 이번 주에 바로 시작할 수 있을 만큼 구체적으로 씁니다.
+- '채우면 좋은 능력'과 <사용자 프로필>이 있으면 단계 목표에 반영합니다.
+- 자격·훈련과정·숫자는 <근거자료>에 있는 것만 씁니다. 없으면 빈 목록입니다. 시험 날짜를 새로 만들지 않습니다."""
+
+
+def roadmap_system(job: str, path: str, start: str, path_hint: str, evidence: str | None, profile_text: str = "") -> str:
+    role = ROADMAP_ROLE.format(job=job, path=path, start=start)
+    return _build(role, ROADMAP_FORMAT.format(path_hint=path_hint), evidence, profile_text)
+
+
 def recommend_system(candidates: list[str], evidence: str | None, profile_text: str = "") -> str:
     extra = f"<후보 직무>\n{', '.join(candidates)}\n</후보 직무>\n" + profile_text
     return _build(RECOMMEND_ROLE, RECOMMEND_FORMAT, evidence, extra)

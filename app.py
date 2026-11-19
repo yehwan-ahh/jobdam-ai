@@ -44,6 +44,12 @@ page = st.navigation(
                 icon=":material/timeline:",
                 help="취업·대학원·창업 중 갈림길을 고르면 그 길을 간 '3년 뒤의 나'가 장단점을 들려줍니다.",
             ),
+            st.Page(
+                "app_pages/roadmap.py",
+                title="커리어 로드맵",
+                icon=":material/route:",
+                help="직무와 갈림길을 고르면 지금부터 3년 뒤까지의 길을 이정표로 그려 줍니다.",
+            ),
         ],
         "안내": [
             st.Page(
