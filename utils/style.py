@@ -122,13 +122,21 @@ def hero_emoji(emoji: str) -> None:
 
 _TOP_JS = """<script>
 (() => {
+  let stop = false;
+  const docs = [document];
+  try { if (window.parent && window.parent.document) docs.push(window.parent.document); } catch (e) {}
+  for (const d of docs) {
+    ["wheel", "touchstart", "keydown"].forEach((ev) => d.addEventListener(ev, () => { stop = true; }, { once: true, passive: true }));
+  }
   const go = () => {
-    for (const d of [document, window.parent && window.parent.document]) {
-      const el = d && d.querySelector('[data-testid="stAppScrollToBottomContainer"]');
+    if (stop) return;
+    for (const d of docs) {
+      const el = d.querySelector('[data-testid="stAppScrollToBottomContainer"]');
       if (el) el.scrollTop = 0;
     }
+    window.__jdTop = (window.__jdTop || 0) + 1;
   };
-  [150, 600, 1200, 2000].forEach((t) => setTimeout(go, t));
+  [100, 400, 900, 1500, 2300, 3500].forEach((t) => setTimeout(go, t));
 })();
 </script>"""
 
