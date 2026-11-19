@@ -93,10 +93,8 @@ def road_svg(plan: dict, rm: dict) -> str:
     out += [
         f'<line x1="{fx}" y1="{fy}" x2="{fx}" y2="{fy - 70}" stroke="#111111" stroke-width="4" stroke-linecap="round"/>',
         f'<path d="M{fx},{fy - 70} L{fx + 44},{fy - 58} L{fx},{fy - 46} Z" fill="#111111"/>',
-        f'<text x="{fx + 30}" y="{fy + 50}" text-anchor="end" font-size="17" font-weight="800" fill="#111111">3년 뒤의 나</text>',
+        f'<text x="{fx - 14}" y="{fy - 50}" text-anchor="end" font-size="17" font-weight="800" fill="#111111">3년 뒤의 나</text>',
     ]
-    for j, line in enumerate(_wrap(plan["checkpoint"], 22)):
-        out.append(f'<text x="{fx + 30}" y="{fy + 74 + j * 20}" text-anchor="end" font-size="13" fill="#6B6B6B">{e(line)}</text>')
     out.append(f'<text x="40" y="44" font-size="22" font-weight="800" fill="#111111">{e(rm["job"])} · {e(rm["path"])}</text>')
     out.append(f'<text x="40" y="70" font-size="15" fill="#555555">{e(plan["headline"])}</text>')
     out.append("</svg>")
@@ -106,6 +104,7 @@ def road_svg(plan: dict, rm: dict) -> str:
 svg = road_svg(plan, rm)
 st.space("small")
 st.image(svg, width="stretch")  # st.html은 SVG를 걸러 내서 이미지로 그립니다
+st.markdown(f"🏁 **3년 뒤의 나** · {plan['checkpoint']}")
 
 # 이 길의 숫자(KOSIS)
 stat = data.get("stat")
