@@ -178,6 +178,42 @@ def fit(p: dict, t: dict) -> dict:
     }
 
 
+# ── 갈림길(취업·대학원·창업) 추천 ─────────────────────────────
+# 흥미 유형(Holland)과 가치관이 각 길에서 얼마나 쓰이는지에 대한 일반적인 경향으로 만든 참고 규칙입니다.
+PATH_RULES = {
+    "취업/이직": {"types": {"C": 1.0, "S": 0.8, "R": 0.8, "E": 0.5}, "values": ["직업안정", "일과 삶의 균형", "경제적 보상", "사회적 인정"],
+               "why": "정해진 조직 안에서 역할을 맡아 경력과 소득을 차근차근 쌓는 길"},
+    "대학원 진학": {"types": {"I": 1.0, "A": 0.6, "S": 0.3}, "values": ["자기개발", "성취", "자율성"],
+                "why": "한 분야를 깊게 파고들어 전문성을 키우는 길"},
+    "창업": {"types": {"E": 1.0, "A": 0.7, "R": 0.3}, "values": ["자율성", "변화지향", "성취", "경제적 보상"],
+           "why": "스스로 문제를 정하고 사람을 모아 새 일을 만드는 길"},
+}
+
+
+def recommend_path(p: dict) -> list[dict]:
+    """간이검사 결과로 세 갈림길의 맞는 정도(0~100)와 이유. 높은 순."""
+    ri = effective_riasec(p)
+    vals = effective_values(p)[:3]
+    weights = [1.0, 0.8, 0.6]
+    out = []
+    for path, rule in PATH_RULES.items():
+        t = sum(w * ri.get(c, 50) for c, w in rule["types"].items()) / sum(rule["types"].values())
+        if vals:
+            v = sum(weights[i] for i, x in enumerate(vals) if x in rule["values"]) / sum(weights[: len(vals)]) * 100
+        else:
+            v = 50
+        score = round(0.6 * t + 0.4 * v)
+        top_types = [RIASEC[c] for c in sorted(rule["types"], key=lambda c: -ri.get(c, 0)) if ri.get(c, 0) >= 60][:2]
+        hit_vals = [x for x in vals if x in rule["values"]]
+        reason = []
+        if top_types:
+            reason.append(f"{'·'.join(top_types)} 흥미가 높고")
+        if hit_vals:
+            reason.append(f"'{', '.join(hit_vals)}'을(를) 중요하게 여겨요")
+        out.append({"path": path, "score": score, "reason": " ".join(reason) or "흥미·가치관이 고르게 걸쳐 있어요", "about": rule["why"]})
+    return sorted(out, key=lambda r: -r["score"])
+
+
 # ── AI 프롬프트용 요약 ────────────────────────────────────────
 def prompt_block(job: str | None = None) -> str:
     p = get()
@@ -209,6 +245,8 @@ def prompt_block(job: str | None = None) -> str:
                 lines.append("  · 잘 맞는 점: " + ", ".join(f["match"]))
             if f["gaps"]:
                 lines.append("  · 이 직무에서 중요한데 아직 고르지 않은 능력: " + ", ".join(f["gaps"]))
+    rec = recommend_path(p)
+    lines.append("- 간이검사 기준 잘 맞는 갈림길(참고): " + ", ".join(f"{r['path']} {r['score']}" for r in rec))
     lines.append(
         "활용 규칙: 이 프로필로 답을 그 사람에게 맞게 구체화합니다(예: \"분석을 좋아한다면\"). "
         "사람을 단정하지 않고, 프로필에 없는 개인 사실을 지어내지 않습니다. 적합도를 말할 때는 참고 지표라고 밝힙니다."

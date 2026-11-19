@@ -47,6 +47,37 @@ def pick_path(path: str) -> None:
     st.session_state.future_jump = True
 
 
+# ── 종합: 직무 간이검사 + 직무 패널 → 나에게 맞는 갈림길 ─────────
+rec = profile.recommend_path(_me) if _me else []
+st.space("small")
+with st.container(key="future-synth"):
+    st.html('<div class="jd-report-tag">🧩 직무 간이검사 + 직무 패널 종합</div>')
+    a1, a2, a3 = st.columns([1, 1.15, 1.35], gap="medium")
+    with card("syn-me", "white", parent=a1):
+        st.caption("① 직무 간이검사")
+        if _me:
+            st.markdown(f"**{profile.summary_line(_me)}**")
+            st.caption("강점: " + (", ".join((_me.get("abilities") or [])[:3]) or "고르지 않음"))
+        else:
+            st.markdown("아직 검사 전이에요")
+            if st.button("간이검사 하기", icon=":material/person_search:", key="syn-do-test"):
+                st.switch_page("app_pages/profile.py")
+    with card("syn-job", "white", parent=a2):
+        st.caption("② 직무 패널에서 고른 직무")
+        st.markdown(f"**{target_job}**")
+        profile.render_fit(target_job, "future")
+    with card("syn-path", "white", parent=a3):
+        st.caption("③ 나에게 맞는 갈림길 (참고 추천)")
+        if rec:
+            best = rec[0]
+            st.markdown(f"### {EMOJI.get(best['path'], '')} {best['path']} 추천")
+            st.markdown(f"{best['reason']}. {best['about']}이에요.")
+            for r in rec:
+                st.progress(r["score"] / 100, text=f"{r['path']} {r['score']}점")
+            st.caption(":material/info: 간이검사의 흥미 유형·가치관으로 계산한 참고 지표예요. 정답이 아니니 세 길을 모두 비교해 보세요.")
+        else:
+            st.markdown("간이검사를 하면 취업·대학원·창업 중 나에게 맞는 길을 추천해 줘요.")
+
 # ── 갈림길 한눈에 비교 (KOSIS 실제 값) ─────────────────────────
 if kosis.is_enabled():
     st.space("small")
@@ -59,6 +90,8 @@ if kosis.is_enabled():
     for col, path in zip(cols, FUTURES.keys()):
         with card(f"cmp-{path}", "white", parent=col):
             st.markdown(f"#### {EMOJI.get(path, '')} {path}")
+            if rec and rec[0]["path"] == path:
+                st.badge("간이검사 추천", icon=":material/star:", color="blue")
             with st.spinner("통계를 불러오는 중…"):
                 s = compare.stats(path)
             if s.error:
@@ -84,7 +117,7 @@ st.space("small")
 choice = st.segmented_control(
     "어떤 갈림길이 궁금한가요?",
     list(FUTURES.keys()),
-    default="취업/이직",
+    default=rec[0]["path"] if rec else "취업/이직",
     key="future_choice",
 )
 
@@ -126,21 +159,6 @@ with card("stats", "white", parent=stat):
         st.badge("KOSIS 연결됨", icon=":material/check:", color="green")
     else:
         st.badge("KOSIS 키 대기 중", color="gray")
-
-# ── 실제 통계 (KOSIS 연결 시) ─────────────────────────────
-if kosis.is_enabled():
-    st.space("small")
-    with st.expander("이 길과 관련된 공식 통계 원자료 보기 (KOSIS)", icon=":material/table_chart:"):
-        st.caption("'3년 뒤의 나'는 아래 통계를 근거로 이야기해요. 숫자가 궁금하면 대화창에 물어보세요.")
-        for key in kosis.FUTURE_TABLES.get(choice, []):
-            t = kosis.TABLES[key]
-            df, err = kosis.load(key)
-            st.markdown(f"**{t.title}** · [원문 보기]({t.url})")
-            if df is None or df.empty:
-                st.caption(f"이 통계표는 아직 불러오지 못했어요. ({err})")
-            else:
-                st.dataframe(df.head(50), hide_index=True, alt=f"{t.title} 통계 표")
-            st.caption(f"출처: {t.source}, KOSIS")
 
 # ── 3년 뒤의 나와 대화 (아래 채팅창) ─────────────────────────
 my_major = st.session_state.get("my_major")

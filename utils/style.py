@@ -60,6 +60,29 @@ h1, h2, h3 {{ letter-spacing: -0.02em; }}
 [data-testid="stBaseButton-pillsActive"] {{ background: #111111 !important; color: #FFFFFF !important; border-color: #111111 !important; }}
 [data-testid="stBaseButton-pillsActive"] p {{ color: #FFFFFF !important; }}
 
+/* 간이검사 결과지: 큰 흰 박스 + 진한 테두리 */
+[class*="st-key-pf-report"], [class*="st-key-future-synth"] {{
+    background: #FFFFFF; border: 2px solid #111111; border-radius: 24px; padding: 1.8rem 1.9rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05), 0 18px 48px rgba(0,0,0,0.08);
+}}
+[class*="st-key-pf-report"] [class*="st-key-card-white-"], [class*="st-key-future-synth"] [class*="st-key-card-white-"] {{ border-color: #E5E5E5; box-shadow: none; background: #FBFBF9; }}
+.jd-report-tag {{ display: inline-block; background: #111111; color: #FFFFFF; font-weight: 700; font-size: 0.9rem;
+    padding: 0.35rem 0.8rem; border-radius: 999px; }}
+[class*="st-key-pf-next"] {{ background: #F4F4F1; border-radius: 16px; padding: 0.9rem 1.1rem; }}
+
+/* 직무 패널: '3년 뒤의 나와 채팅하기' 강조 띠 */
+[class*="st-key-cta-future"] {{
+    background: #111111; border-radius: 20px; padding: 1.2rem 1.4rem;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.18);
+}}
+[class*="st-key-cta-future"] p, [class*="st-key-cta-future"] h4 {{ color: #FFFFFF !important; }}
+[class*="st-key-cta-future"] [data-testid="stCaptionContainer"] p {{ color: #CFCFCB !important; }}
+[class*="st-key-cta-future"] button {{ background: #FFFFFF !important; border-color: #FFFFFF !important; min-height: 3rem; }}
+[class*="st-key-cta-future"] button p {{ color: #111111 !important; font-weight: 800; font-size: 1.02rem; }}
+
+/* 메인 로고: 둥근 모서리 */
+[class*="st-key-card-white-intro-hero"] img {{ border-radius: 16px; }}
+
 /* 직무 간이검사: 검사지처럼 문항은 크게, 다섯 칸은 모두 또렷하게 */
 [class*="st-key-pfq-row-"] {{ padding: 0.85rem 0 0.95rem; border-bottom: 1px solid #EDEDEA; }}
 .jd-q {{ font-size: 1.12rem; font-weight: 700; color: #111111; line-height: 1.5; display: flex; gap: 0.6rem; align-items: baseline; }}

@@ -227,6 +227,15 @@ if S.selected_job:
                 st.rerun()
             st.warning("다른 선배들의 의견을 받지 못했어요. 잠시 뒤 다시 눌러 주세요.", icon=":material/error:")
 
+    # ── 다음 단계 강조: 3년 뒤의 나와 채팅하기 ──────────────────
+    st.space("small")
+    with st.container(key="cta-future", horizontal=True, vertical_alignment="center"):
+        with st.container():
+            st.markdown(f"#### 🔭 이제 '{name}'을(를) 목표로 한 3년 뒤의 나와 이야기해 볼까요?")
+            st.caption("직무 간이검사 결과와 지금 고른 직무를 합쳐, 취업·대학원·창업 중 나에게 맞는 길을 추천하고 미래의 내가 직접 들려줘요.")
+        if st.button("3년 뒤의 나와 채팅하기", icon=":material/arrow_forward:", key="cta-future-go"):
+            st.switch_page("app_pages/future.py")
+
     if training.is_enabled():
         st.space("small")
         with st.expander("이 직무를 준비할 국비 지원 교육과정 보기", icon=":material/school:"):

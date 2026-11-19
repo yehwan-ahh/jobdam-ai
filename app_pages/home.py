@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import streamlit as st
 
 from utils import majors, profile
@@ -5,10 +7,15 @@ from utils.evidence import recommend_candidates
 from utils.style import big_number, card, hero_emoji
 
 # ── 1. 잡담은 무엇인가 (주제) ─────────────────────────────────
+LOGO = Path(__file__).resolve().parent.parent / "assets" / "logo.png"
+
 with card("intro-hero", "white"):
-    pic, msg = st.columns([1, 4], vertical_alignment="center")
+    pic, msg = st.columns([1.25, 2], vertical_alignment="center", gap="medium")
     with pic:
-        hero_emoji("💬")
+        if LOGO.exists():
+            st.image(str(LOGO), width="stretch")
+        else:
+            hero_emoji("💬")
     with msg:
         st.caption("2026 대한민국 청년 CAREER FAIR AI 해커톤")
         st.markdown("## 잡담(Job談) · 일(Job)에 대한 이야기(談)")

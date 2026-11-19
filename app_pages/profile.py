@@ -116,10 +116,20 @@ if not p:
 
 # ── 결과 ─────────────────────────────────────────────────────
 st.space("medium")
-st.subheader("나의 성향 요약", anchor=False)
+report = st.container(key="pf-report")
+if submitted:  # 저장하면 결과지로 바로 내려가기
+    st.html(
+        "<script>setTimeout(()=>{const d=window.parent.document||document;"
+        "const el=d.querySelector('[class*=\"st-key-pf-report\"]');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},500);</script>",
+        unsafe_allow_javascript=True,
+    )
 ri = profile.effective_riasec(p)
 top = profile.top_codes(ri, 2)
-left, right = st.columns([1.1, 1], gap="medium")
+with report:
+    st.html('<div class="jd-report-tag">📋 직무 간이검사 결과지</div>')
+    st.markdown(f"## 나는 **{' · '.join(profile.RIASEC[c] for c in top)}**에 가까워요")
+    st.caption("아래 결과는 직무 패널의 선배 대답, 직무 적합도, '3년 뒤의 나'에 그대로 이어져요.")
+left, right = report.columns([1.1, 1], gap="medium")
 with card("pf-result", "white", parent=left):
     st.markdown(f"### {' · '.join(profile.RIASEC[c] for c in top)}")
     st.markdown(" / ".join(profile.RIASEC_DESC[c] for c in top) + "에 끌리는 편이에요.")
@@ -148,12 +158,17 @@ with card("pf-values-res", "white", parent=right):
     if p.get("likes"):
         st.markdown(f"**좋아하는 것·경험** · {p['likes']}")
     st.space("small")
-    with st.container(horizontal=True):
-        if st.button("직무 패널로 가기", icon=":material/groups:", type="primary"):
+    st.markdown("**나에게 맞는 갈림길 (참고)**")
+    for r in profile.recommend_path(p):
+        st.progress(r["score"] / 100, text=f"{r['path']} · {r['score']}점 — {r['reason']}")
+
+with report:
+    st.space("small")
+    with st.container(horizontal=True, vertical_alignment="center", key="pf-next"):
+        st.markdown("**다음 단계** · 이 결과로 직무 패널에서 직업을 골라 선배와 이야기해 보세요.")
+        if st.button("직무 패널로 가기", icon=":material/arrow_forward:", type="primary", key="pf-go-panel"):
             st.switch_page("app_pages/panel.py")
-        if st.button("3년 뒤의 나 만나기", icon=":material/timeline:"):
-            st.switch_page("app_pages/future.py")
-        if st.button("프로필 지우기", icon=":material/delete:"):
+        if st.button("다시 검사하기", icon=":material/restart_alt:", key="pf-clear"):
             profile.clear()
             st.rerun()
 
