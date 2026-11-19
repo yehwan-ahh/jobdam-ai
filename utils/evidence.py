@@ -80,3 +80,44 @@ def future_evidence(choice: str, major: str | None = None) -> tuple[str | None, 
 def show_sources(names: list[str]) -> None:
     if names:
         st.caption(":material/link: 근거: " + " · ".join(names))
+
+
+def job_evidence(job: str, question: str = "", major: str | None = None) -> tuple[str | None, list[str]]:
+    """선택한 직무 하나에 대한 근거(커리어넷·워크넷·현직자 인터뷰·학과)."""
+    chunks: list[str] = []
+    sources: list[str] = []
+    if careernet.is_enabled():
+        text = _careernet(job)
+        if text:
+            chunks.append(f"[커리어넷 · {job}]\n{text}")
+            sources.append(careernet.SOURCE)
+    if worknet.is_enabled():
+        text = _worknet(job)
+        if text:
+            chunks.append(f"[워크넷 · {job}]\n{text}")
+            sources.append(worknet.SOURCE)
+    if interviews.is_enabled():
+        text, label = interviews.evidence(question or job, [job])
+        if text and label:
+            chunks.append(text)
+            sources.append(label)
+    major_line = majors.evidence(major)
+    if major_line:
+        chunks.append(major_line)
+        sources.append(majors.SOURCE)
+    return ("\n\n".join(chunks) or None), sources
+
+
+def recommend_candidates(major: str | None = None) -> list[str]:
+    """추천 후보: 학과 상위 진출 직업 + 현직자 인터뷰가 있는 직업 + 잡담 기본 패널 직무."""
+    from utils.demo_data import PANELS
+
+    names: list[str] = []
+    if major:
+        names += majors.top_jobs(major)
+    if interviews.is_enabled():
+        names += interviews.jobs()
+    for personas in PANELS.values():
+        names += [p["role"] for p in personas]
+    seen: set[str] = set()
+    return [n for n in names if not (n in seen or seen.add(n))]

@@ -31,11 +31,13 @@ class LLMResult:
     error: str | None = None  # 사용자에게 보여 줄 안내 문구
 
 
-Caller = Callable[[str, str, str, list[dict[str, str]]], LLMResult]
+Caller = Callable[..., LLMResult]
 
 
 # ── 공급자별 호출 ────────────────────────────────────────────
-def _call_openai(api_key: str, model_name: str, system: str, messages: list[dict[str, str]]) -> LLMResult:
+def _call_openai(
+    api_key: str, model_name: str, system: str, messages: list[dict[str, str]], json_mode: bool = False
+) -> LLMResult:
     import openai
 
     client = openai.OpenAI(api_key=api_key, max_retries=2, timeout=60.0)
@@ -44,6 +46,7 @@ def _call_openai(api_key: str, model_name: str, system: str, messages: list[dict
             model=model_name,
             messages=[{"role": "system", "content": system}, *messages],  # type: ignore[list-item]
             max_completion_tokens=4000,
+            **({"response_format": {"type": "json_object"}} if json_mode else {}),
         )
     except openai.AuthenticationError:
         return LLMResult(None, "API 키가 올바르지 않아요. 키를 다시 확인해 주세요.")
@@ -62,7 +65,10 @@ def _call_openai(api_key: str, model_name: str, system: str, messages: list[dict
     return LLMResult(text or None, None if text else "답변이 비어 있어요. 다시 시도해 주세요.")
 
 
-def _call_anthropic(api_key: str, model_name: str, system: str, messages: list[dict[str, str]]) -> LLMResult:
+def _call_anthropic(
+    api_key: str, model_name: str, system: str, messages: list[dict[str, str]], json_mode: bool = False
+) -> LLMResult:
+    del json_mode  # 프롬프트로 JSON 형식을 요구합니다
     try:
         import anthropic
     except ImportError:
@@ -150,7 +156,7 @@ def remaining_team_questions() -> int:
 
 
 # ── 생성 ────────────────────────────────────────────────────
-def generate(system: str, messages: list[dict[str, str]]) -> LLMResult:
+def generate(system: str, messages: list[dict[str, str]], json_mode: bool = False) -> LLMResult:
     """messages: [{"role": "user"|"assistant", "content": str}, ...]"""
     source = key_source()
     if source is None:
@@ -162,7 +168,7 @@ def generate(system: str, messages: list[dict[str, str]]) -> LLMResult:
 
     api_key = _byok_key() if source == "byok" else _team_key()
     call = _PROVIDERS[provider()][3]
-    result = call(api_key or "", model(), system, messages)
+    result = call(api_key or "", model(), system, messages, json_mode=json_mode)
     if result.text is not None and source == "team":
         st.session_state[USAGE_STATE_KEY] = int(st.session_state.get(USAGE_STATE_KEY, 0)) + 1
     return result
@@ -186,3 +192,20 @@ def render_byok_sidebar() -> None:
             st.caption(f"팀 키 사용 중 · 남은 질문 {remaining_team_questions()}개")
         else:
             st.caption("키가 없어서 시연 모드로 보여 줘요.")
+
+
+def generate_json(system: str, messages: list[dict[str, str]]) -> tuple[dict | None, str | None]:
+    """JSON 객체로 답을 받습니다. (데이터, 오류 안내)"""
+    import json
+    import re
+
+    result = generate(system, messages, json_mode=True)
+    if not result.text:
+        return None, result.error
+    text = result.text.strip()
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    try:
+        data = json.loads(match.group(0) if match else text)
+    except (ValueError, AttributeError):
+        return None, "추천 결과를 읽지 못했어요. 다시 한 번 물어봐 주세요."
+    return (data if isinstance(data, dict) else None), None

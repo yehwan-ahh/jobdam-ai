@@ -8,6 +8,9 @@ from utils.style import card, hero_emoji, icon_tile
 
 st.title("3년 뒤의 나 🔭", anchor=False)
 st.caption("갈림길을 고르면 그 길을 걸은 '3년 뒤의 나'가 좋았던 점과 아쉬웠던 점을 들려줍니다.")
+target_job = (st.session_state.get("selected_job") or {}).get("name")
+if target_job:
+    st.badge(f"직무 패널에서 고른 직무: {target_job}", icon=":material/work:", color="blue")
 
 if not llm.is_enabled():
     st.info(DEMO_NOTICE, title="시연 모드", icon=":material/science:")
@@ -106,7 +109,7 @@ if prompt:
         if llm.is_enabled():
             with st.spinner("3년 뒤의 내가 생각을 정리하고 있어요"):
                 evidence, used = future_evidence(choice, my_major)
-                result = llm.generate(future_system(choice, evidence), history[-10:])
+                result = llm.generate(future_system(choice, evidence, target_job), history[-10:])
             if not result.text:
                 st.warning(result.error or "답변을 만들지 못했어요.", icon=":material/error:")
                 history.pop()
