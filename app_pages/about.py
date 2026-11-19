@@ -23,9 +23,9 @@ with card("roadmap", "white", parent=left):
     st.markdown("#### 개발 로드맵")
     roadmap = [
         ("사이트 구성 초안과 시연용 화면", "완료", "green"),
-        ("커리어넷·KOSIS Open API 키 신청 및 연동", "진행 중", "blue"),
-        ("LLM 기반 직무 페르소나 답변 생성과 출처 표시", "예정", "gray"),
-        ("'3년 뒤의 나' 통계 시각화", "예정", "gray"),
+        ("고용24 직업정보·훈련과정, KOSIS 연동 (커리어넷은 키 대기)", "완료", "green"),
+        ("직무 선배 AI 대화·답변 출처 표시·개인정보 차단", "완료", "green"),
+        ("'3년 뒤의 나' 통계 시각화", "진행 중", "blue"),
         ("사용성 테스트 후 해커톤 최종 시연", "예정", "gray"),
     ]
     for task, status, color in roadmap:

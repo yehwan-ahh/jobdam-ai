@@ -65,8 +65,8 @@ with card("stats", "white", parent=stat):
 # ── 실제 통계 (KOSIS 연결 시) ─────────────────────────────
 if kosis.is_enabled():
     st.space("small")
-    with card("kosis-data", "white"):
-        st.markdown("#### KOSIS 통계 미리보기")
+    with st.expander("이 길과 관련된 공식 통계 원자료 보기 (KOSIS)", icon=":material/table_chart:"):
+        st.caption("'3년 뒤의 나'는 아래 통계를 근거로 이야기해요. 숫자가 궁금하면 대화창에 물어보세요.")
         for key in kosis.FUTURE_TABLES.get(choice, []):
             t = kosis.TABLES[key]
             df, err = kosis.load(key)
