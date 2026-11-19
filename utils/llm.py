@@ -236,5 +236,8 @@ def generate_json(system: str, messages: list[dict[str, str]]) -> tuple[dict | N
     try:
         data = json.loads(match.group(0) if match else text)
     except (ValueError, AttributeError):
-        return None, "추천 결과를 읽지 못했어요. 다시 한 번 물어봐 주세요."
-    return (data if isinstance(data, dict) else None), None
+        # JSON이 아니면 글 자체를 대답으로 씁니다(화면이 멈추지 않게).
+        return {"answer": text, "message": text, "jobs": [], "sources": []}, None
+    if not isinstance(data, dict):
+        return {"answer": text, "message": text, "jobs": [], "sources": []}, None
+    return data, None

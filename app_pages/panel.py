@@ -39,6 +39,26 @@ def blocked_by_pii(text: str) -> bool:
 BR = "  " + chr(10)  # 마크다운 줄바꿈
 
 
+def parse_answer(data: dict | None) -> tuple[str, list[str]]:
+    """AI가 돌려준 JSON에서 대답과 출처 목록을 꺼냅니다. 키 이름이 조금 달라도 받아 줍니다."""
+    if not isinstance(data, dict):
+        return "", []
+    answer = next((data[k] for k in ("answer", "reply", "response", "대답", "답변") if isinstance(data.get(k), str)), "")
+    if not answer:  # 가장 긴 문자열 값을 대답으로
+        strings = [v for v in data.values() if isinstance(v, str)]
+        answer = max(strings, key=len) if strings else ""
+    raw = next((data[k] for k in ("sources", "source", "출처", "근거") if isinstance(data.get(k), list)), [])
+    used = []
+    for x in raw:
+        if isinstance(x, dict) and (x.get("from") or x.get("source")):
+            what = str(x.get("what", "")).strip()
+            src = str(x.get("from") or x.get("source")).strip()
+            used.append(f"{what}: {src}" if what else src)
+        elif isinstance(x, str) and x.strip():
+            used.append(x.strip())
+    return answer.strip(), used
+
+
 def render_sources(used: list[str], found: list[str]) -> None:
     """답변 아래 근거 영역: 어떤 내용이 어느 공공데이터에서 왔는지, 나머지는 AI 일반 지식."""
     lines = used or ([f"참고한 자료: {' · '.join(found)}"] if found else [])
@@ -114,16 +134,11 @@ if S.selected_job:
                     evidence, sources = job_evidence(name, prompt, S.my_major)
                     clean = [{"role": m["role"], "content": m["content"]} for m in history[-10:]]
                     data, err = llm.generate_json(job_system(name, evidence), clean)
-                if data is None or not str(data.get("answer", "")).strip():
-                    st.warning(err or "답변을 만들지 못했어요.", icon=":material/error:")
+                reply, used = parse_answer(data)
+                if not reply:
+                    st.warning(err or "답변을 만들지 못했어요. 한 번 더 물어봐 주세요.", icon=":material/error:")
                     history.pop()
                     st.stop()
-                reply = str(data["answer"]).strip()
-                used = [
-                    f"{str(x.get('what', '')).strip()}: {str(x.get('from', '')).strip()}"
-                    for x in data.get("sources", [])
-                    if isinstance(x, dict) and x.get("from")
-                ]
                 st.markdown(reply)
                 render_sources(used, sources)
                 history.append({"role": "assistant", "content": reply, "sources": used, "found": sources})
