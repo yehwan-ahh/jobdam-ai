@@ -4,9 +4,11 @@ from utils import compare, kosis, llm, majors
 from utils.demo_data import DEMO_NOTICE, FUTURES
 from utils.evidence import future_evidence, show_sources
 from utils.prompts import find_personal_info, future_system
-from utils.style import card, hero_emoji, icon_tile
+from utils.style import card, hero_emoji, icon_tile, scroll_to_top
 
 st.title("3년 뒤의 나 🔭", anchor=False)
+if not any(st.session_state.get("future_messages", {}).values()) and not st.session_state.get("future_jump"):
+    scroll_to_top()
 st.caption("갈림길을 고르면 그 길을 걸은 '3년 뒤의 나'가 좋았던 점과 아쉬웠던 점을 들려줍니다.")
 target_job = (st.session_state.get("selected_job") or {}).get("name")
 if target_job:

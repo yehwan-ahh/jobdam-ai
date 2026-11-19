@@ -6,7 +6,7 @@ from utils import interviews, llm, majors, training, worknet
 from utils.demo_data import DEMO_NOTICE, PANELS
 from utils.evidence import job_evidence, recommend_candidates
 from utils.prompts import answer_mode, find_personal_info, job_system, panel_opinion_system, recommend_system
-from utils.style import card
+from utils.style import card, scroll_to_top
 
 # ── 상태 ─────────────────────────────────────────────────────
 S = st.session_state
@@ -100,6 +100,8 @@ def render_sources(used: list[str], found: list[str]) -> None:
 
 
 st.title("직무 패널 👥", anchor=False)
+if not S.selected_job and not S.panel_explore:
+    scroll_to_top()
 if not S.selected_job:
     st.markdown("#### 🎤 반가워요! 요즘 어떤 진로 고민이 있나요?")
     st.markdown(

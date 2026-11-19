@@ -27,7 +27,8 @@ with card("hero", "peach", parent=hero):
     with msg:
         st.markdown("### 좋은 하루예요! ☀️")
         st.markdown("현직자 AI 패널과 **3년 뒤의 나**가 함께 고민해 드릴게요.")
-        st.page_link("app_pages/panel.py", label="패널 만나러 가기", icon=":material/arrow_forward:")
+        if st.button("직무 패널 시작하기", icon=":material/arrow_forward:", type="primary", key="hero-start"):
+            st.switch_page("app_pages/panel.py")
 
 stats = [
     (s1, "sky", "navy", "💼", "대화할 수 있는 직무", f"{len(recommend_candidates(None))}개", "공공데이터 직업 목록 기준"),

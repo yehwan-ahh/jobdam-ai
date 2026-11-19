@@ -118,3 +118,22 @@ def big_number(text: str) -> None:
 
 def hero_emoji(emoji: str) -> None:
     st.html(f'<div class="jd-hero-emoji">{emoji}</div>')
+
+
+_TOP_JS = """<script>
+(() => {
+  const go = () => {
+    for (const d of [document, window.parent && window.parent.document]) {
+      const el = d && d.querySelector('[data-testid="stAppScrollToBottomContainer"]');
+      if (el) el.scrollTop = 0;
+    }
+  };
+  [150, 600, 1200, 2000].forEach((t) => setTimeout(go, t));
+})();
+</script>"""
+
+
+def scroll_to_top() -> None:
+    """채팅 입력창이 있는 페이지는 Streamlit이 맨 아래로 붙여서 엽니다.
+    처음 들어왔을 때(대화 전) 위쪽의 선택 화면부터 보이도록 맨 위로 올립니다."""
+    st.html(_TOP_JS, unsafe_allow_javascript=True)
