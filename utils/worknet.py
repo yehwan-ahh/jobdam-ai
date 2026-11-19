@@ -7,6 +7,7 @@
 키(WORKNET_API_KEY)가 없거나 호출이 실패하면 None을 돌려주고, 화면은 다른 근거로 동작합니다.
 """
 
+import re
 import xml.etree.ElementTree as ET
 
 import requests
@@ -27,13 +28,18 @@ SUMMARY_FIELDS = {
 }
 
 
+def _key() -> str | None:
+    # 고용24는 서비스마다 인증키가 다릅니다. '직업정보' 서비스 키를 씁니다(WORKNET_API_KEY는 예전 이름).
+    return get_secret("WORK24_JOB_KEY") or get_secret("WORKNET_API_KEY")
+
+
 def is_enabled() -> bool:
-    return get_secret("WORKNET_API_KEY") is not None
+    return _key() is not None
 
 
 @st.cache_data(ttl=60 * 60 * 24, show_spinner=False)
 def _get(path: str, params: tuple[tuple[str, str], ...]) -> ET.Element | None:
-    key = get_secret("WORKNET_API_KEY")
+    key = _key()
     if not key:
         return None
     try:
@@ -47,14 +53,44 @@ def _get(path: str, params: tuple[tuple[str, str], ...]) -> ET.Element | None:
     return root
 
 
-def search_jobs(keyword: str, limit: int = 3) -> list[dict[str, str]] | None:
+def _search_once(keyword: str) -> list[dict[str, str]] | None:
     root = _get("callOpenApiSvcInfo212L01.do", (("target", "JOBCD"), ("srchType", "K"), ("keyword", keyword)))
     if root is None:
         return None
-    jobs = []
-    for item in root.iter("jobList"):
-        jobs.append({child.tag: (child.text or "").strip() for child in item})
-    return jobs[:limit]
+    return [{child.tag: (child.text or "").strip() for child in item} for item in root.iter("jobList")]
+
+
+def _grams(text: str) -> set[str]:
+    t = re.sub(r"[\s·/()]", "", text)
+    return {t[i : i + 2] for i in range(len(t) - 1)}
+
+
+def search_jobs(keyword: str, limit: int = 3) -> list[dict[str, str]] | None:
+    """고용24 키워드 검색은 정확한 합성어(예: '게임 기획자')에 약해서,
+    전체 이름 → 띄어쓰기 제거 → 낱말별로 차례로 찾아 이름이 가장 비슷한 직업을 고릅니다."""
+    words = [w for w in re.split(r"[\s·/()]+", keyword) if len(w) >= 2]
+    tries = [keyword, keyword.replace(" ", "")] + sorted(words, key=len, reverse=True)
+    found: dict[str, dict[str, str]] = {}
+    any_ok = False
+    for kw in dict.fromkeys(tries):
+        jobs = _search_once(kw)
+        if jobs is None:
+            continue
+        any_ok = True
+        for job in jobs:
+            found.setdefault(job.get("jobCd", job.get("jobNm", "")), job)
+        if len(found) >= 15:
+            break
+    if not any_ok:
+        return None
+    target = _grams(keyword)
+    ranked = sorted(
+        found.values(),
+        key=lambda j: len(_grams(j.get("jobNm", "")) & target) / max(1, len(_grams(j.get("jobNm", "")) | target)),
+        reverse=True,
+    )
+    best = [j for j in ranked if _grams(j.get("jobNm", "")) & target]
+    return best[:limit]
 
 
 def job_summary(job_cd: str) -> dict[str, str] | None:

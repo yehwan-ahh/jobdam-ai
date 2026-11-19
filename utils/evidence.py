@@ -43,7 +43,7 @@ def panel_evidence(
         if worknet.is_enabled():
             text = _worknet(role)
             if text:
-                chunks.append(f"[고용24 · {role}]\n{text}")
+                chunks.append(f"[고용24 · {role}에 가장 가까운 직업 정보]\n{text}")
                 if worknet.SOURCE not in sources:
                     sources.append(worknet.SOURCE)
     if interviews.is_enabled():
@@ -94,7 +94,7 @@ def job_evidence(job: str, question: str = "", major: str | None = None) -> tupl
     if worknet.is_enabled():
         text = _worknet(job)
         if text:
-            chunks.append(f"[고용24 · {job}]\n{text}")
+            chunks.append(f"[고용24 · {job}에 가장 가까운 직업 정보 (직업명이 다르면 '관련 직업'으로 소개)]\n{text}")
             sources.append(worknet.SOURCE)
     if interviews.is_enabled():
         text, label = interviews.evidence(question or job, [job])
