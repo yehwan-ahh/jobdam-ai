@@ -123,16 +123,23 @@ def hero_emoji(emoji: str) -> None:
 _TOP_JS = """<script>
 (() => {
   let stop = false;
+  let self = false;
   const docs = [document];
   try { if (window.parent && window.parent.document) docs.push(window.parent.document); } catch (e) {}
   for (const d of docs) {
-    ["wheel", "touchstart", "keydown"].forEach((ev) => d.addEventListener(ev, () => { stop = true; }, { once: true, passive: true }));
+    ["wheel", "touchstart", "keydown"].forEach((ev) => d.addEventListener(ev, () => { if (!self) stop = true; }, { passive: true }));
   }
   const go = () => {
     if (stop) return;
     for (const d of docs) {
       const el = d.querySelector('[data-testid="stAppScrollToBottomContainer"]');
-      if (el) el.scrollTop = 0;
+      if (el) {
+        // 위로 굴린 것처럼 알려 '맨 아래 고정'을 풀고(화면 크기가 바뀌어도 다시 내려가지 않게) 맨 위로
+        self = true;
+        el.dispatchEvent(new WheelEvent("wheel", { deltaY: -400, bubbles: true }));
+        self = false;
+        el.scrollTop = 0;
+      }
     }
     window.__jdTop = (window.__jdTop || 0) + 1;
   };
