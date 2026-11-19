@@ -13,7 +13,7 @@ with card("sources", "white"):
         {
             "데이터": [
                 "커리어넷 직업정보(직업백과) Open API",
-                "워크넷 직업정보 Open API",
+                "고용24 직업정보 Open API (구 워크넷)",
                 "상위진출직업 (2022-04-06)",
                 "국가통계포털(KOSIS) OpenAPI",
             ],

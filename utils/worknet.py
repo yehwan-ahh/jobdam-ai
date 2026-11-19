@@ -15,7 +15,7 @@ import streamlit as st
 from utils.secrets import get_secret
 
 BASE = "https://www.work24.go.kr/cm/openApi/call/wk"
-SOURCE = "한국고용정보원 워크넷 직업정보 (공공누리 제4유형)"
+SOURCE = "고용24 직업정보 (한국고용정보원, 공공누리 제4유형)"
 # 상세구분: 1 요약, 2 하는 일, 3 교육/자격/훈련, 4 임금/만족도/전망, 5 능력/지식/환경, 6 성격/흥미/가치관, 7 업무활동
 SUMMARY_FIELDS = {
     "jobSum": "하는 일",
