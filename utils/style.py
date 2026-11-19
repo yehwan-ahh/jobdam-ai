@@ -1,4 +1,4 @@
-"""파스텔 카드 스타일.
+"""모노톤(흰색·회색·검정) 카드 스타일.
 
 레퍼런스 대시보드처럼 둥글고 그림자가 은은한 카드를 만들기 위해,
 key가 `card-<색>-...`, `tile-<색>-...`인 컨테이너에만 CSS를 적용합니다.
@@ -7,41 +7,56 @@ key가 `card-<색>-...`, `tile-<색>-...`인 컨테이너에만 CSS를 적용합
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
-# 네이비·틸 팔레트의 파스텔 톤 + 따뜻한 보조 톤
+# 흰색·회색·검정 모노톤. 색 이름(sky/mint/…)은 호출부 호환을 위해 유지하고 값만 회색 단계로 바꿉니다.
 CARD_COLORS = {
     "white": "#FFFFFF",
-    "sky": "#E6EEF8",    # 네이비 파스텔
-    "mint": "#E2F3EF",   # 틸 파스텔
-    "peach": "#FCEDE3",  # 따뜻한 보조
-    "cream": "#FFF5DC",  # 따뜻한 보조
+    "sky": "#FFFFFF",
+    "mint": "#FBFBF9",
+    "peach": "#F4F4F1",
+    "cream": "#EDEDEA",
 }
 TILE_COLORS = {
-    "navy": "#1E3A6E",
-    "teal": "#0E8C83",
-    "peach": "#F2B8A0",
-    "cream": "#F5CF6B",
+    "navy": "#111111",
+    "teal": "#3A3A3A",
+    "peach": "#8C8C8C",
+    "cream": "#D4D4D4",
     "white": "#FFFFFF",
 }
 
 _CARD_CSS = "\n".join(
     f"""[class*="st-key-card-{name}-"] {{
     background: {color};
-    border-radius: 22px;
-    padding: 1.4rem 1.5rem;
-    box-shadow: 0 8px 24px rgba(30, 58, 110, 0.07);
+    border: 1px solid #E5E5E5;
+    border-radius: 20px;
+    padding: 1.5rem 1.6rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 8px 24px rgba(0, 0, 0, 0.04);
 }}"""
     for name, color in CARD_COLORS.items()
 )
 _CSS = f"""
 {_CARD_CSS}
 .jd-tile {{
-    width: 3.2rem; height: 3.2rem; border-radius: 16px;
+    width: 3.2rem; height: 3.2rem; border-radius: 14px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.55rem; line-height: 1;
-    box-shadow: 0 4px 12px rgba(30, 58, 110, 0.12);
+    font-size: 1.5rem; line-height: 1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10);
 }}
-.jd-big {{ font-size: 2.4rem; font-weight: 700; color: #1E3A6E; line-height: 1.1; margin: 0.2rem 0 0; }}
+.jd-big {{ font-size: 2.6rem; font-weight: 800; color: #111111; line-height: 1.05; letter-spacing: -0.02em; margin: 0.2rem 0 0; }}
 .jd-hero-emoji {{ font-size: 6rem; line-height: 1; text-align: center; padding-top: 0.5rem; }}
+h1, h2, h3 {{ letter-spacing: -0.02em; }}
+
+/* 채팅 말풍선: 흰색 카드 박스로 글씨를 또렷하게 */
+[data-testid="stChatMessage"] {{
+    background: #FFFFFF;
+    border: 1px solid #E5E5E5;
+    border-radius: 18px;
+    padding: 1.1rem 1.3rem;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 6px 18px rgba(0, 0, 0, 0.04);
+}}
+[data-testid="stChatMessage"] p,
+[data-testid="stChatMessage"] li {{ color: #1A1A1A; line-height: 1.7; }}
+[data-testid="stChatMessage"] [data-testid="stCaptionContainer"] p {{ color: #6B6B6B; line-height: 1.5; }}
 """
 
 

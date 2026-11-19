@@ -7,7 +7,7 @@ from utils.style import big_number, card, hero_emoji, icon_tile
 head_l, head_r = st.columns([3, 2], vertical_alignment="center")
 with head_l:
     st.title("대시보드 👋", anchor=False)
-    st.caption("반가워요! 오늘은 어떤 진로 고민을 나눠 볼까요? 💙")
+    st.caption("반가워요! 오늘은 어떤 진로 고민을 나눠 볼까요?")
 with head_r:
     with st.container(horizontal=True, horizontal_alignment="right"):
         st.badge("공공데이터 근거", icon=":material/verified:", color="green")
@@ -113,5 +113,5 @@ with card("cheer", "cream"):
     with c_l:
         hero_emoji("☁️")
     with c_r:
-        st.markdown("### 고민하고 있다는 것 자체가 시작이에요 💛")
+        st.markdown("### 고민하고 있다는 것 자체가 시작이에요")
         st.markdown("정답을 찾기보다, 여러 길을 비교해 보는 것부터 함께해요.")

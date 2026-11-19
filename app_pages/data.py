@@ -61,5 +61,5 @@ for col, color, tone, emoji, title, desc in principles:
 
 st.space("small")
 with card("notice", "cream"):
-    st.markdown("**💛 이용 안내**")
+    st.markdown("**이용 안내**")
     st.caption("잡담의 답변은 진로 탐색을 돕는 참고 자료이며, 전문 상담을 대신하지 않습니다.")
