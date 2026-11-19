@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from utils import careernet, interviews, kosis, majors, worknet
+from utils import careernet, interviews, kosis, majors, training, worknet
 
 
 def _careernet(role: str) -> str | None:
@@ -96,6 +96,11 @@ def job_evidence(job: str, question: str = "", major: str | None = None) -> tupl
         if text:
             chunks.append(f"[고용24 · {job}에 가장 가까운 직업 정보 (직업명이 다르면 '관련 직업'으로 소개)]\n{text}")
             sources.append(worknet.SOURCE)
+    if training.is_enabled():
+        text = training.evidence(job)
+        if text:
+            chunks.append(text)
+            sources.append(training.SOURCE)
     if interviews.is_enabled():
         text, label = interviews.evidence(question or job, [job])
         if text and label:

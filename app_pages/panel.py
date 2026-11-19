@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from utils import interviews, llm, majors
+from utils import interviews, llm, majors, training
 from utils.demo_data import DEMO_NOTICE, PANELS
 from utils.evidence import job_evidence, recommend_candidates, show_sources
 from utils.prompts import answer_mode, find_personal_info, job_system, recommend_system
@@ -63,6 +63,11 @@ if S.selected_job:
             st.button("다른 직무 보기", icon=":material/arrow_back:", on_click=back_to_explore)
             if st.button("이 직무로 '3년 뒤의 나' 보기", icon=":material/timeline:", type="primary"):
                 st.switch_page("app_pages/future.py")
+
+    if training.is_enabled():
+        st.space("small")
+        with card("job-training", "white"):
+            training.render(name)
 
     st.space("small")
     st.subheader(f"{name} 선배에게 물어보기", anchor=False)

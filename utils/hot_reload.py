@@ -20,6 +20,7 @@ ORDER = [
     "utils.worknet",
     "utils.majors",
     "utils.interviews",
+    "utils.training",
     "utils.llm",
     "utils.evidence",
     "utils.status",
