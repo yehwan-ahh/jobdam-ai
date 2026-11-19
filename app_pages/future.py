@@ -1,6 +1,6 @@
 import streamlit as st
 
-from utils import kosis, llm, majors
+from utils import compare, kosis, llm, majors
 from utils.demo_data import DEMO_NOTICE, FUTURES
 from utils.evidence import future_evidence, show_sources
 from utils.prompts import find_personal_info, future_system
@@ -12,14 +12,51 @@ target_job = (st.session_state.get("selected_job") or {}).get("name")
 if target_job:
     st.badge(f"직무 패널에서 고른 직무: {target_job}", icon=":material/work:", color="blue")
 
-if st.query_params.get("kdebug") == "1" and kosis.is_enabled():  # 임시 점검용, 확인 후 삭제
-    for _k in kosis.TABLES:
-        st.text(f"### {_k}\n" + kosis.meta_text(_k))
-    st.stop()
-
 if not llm.is_enabled():
     st.info(DEMO_NOTICE, title="시연 모드", icon=":material/science:")
 
+EMOJI = {"취업/이직": "🧑‍💼", "대학원 진학": "🧑‍🔬", "창업": "🧑‍🚀"}
+
+
+def pick_path(path: str) -> None:
+    st.session_state.future_choice = path
+    st.session_state.future_jump = True
+
+
+# ── 갈림길 한눈에 비교 (KOSIS 실제 값) ─────────────────────────
+if kosis.is_enabled():
+    st.space("small")
+    st.subheader("갈림길 한눈에 비교", anchor=False)
+    st.caption(
+        (f"'{target_job}'을(를) 목표로 할 때 " if target_job else "")
+        + "세 갈림길을 공식 통계로 나란히 봐요. 숫자는 모두 KOSIS 원자료 값이에요."
+    )
+    cols = st.columns(3, gap="medium")
+    for col, path in zip(cols, FUTURES.keys()):
+        with card(f"cmp-{path}", "white", parent=col):
+            st.markdown(f"#### {EMOJI.get(path, '')} {path}")
+            with st.spinner("통계를 불러오는 중…"):
+                s = compare.stats(path)
+            if s.error:
+                st.caption(f"이 길의 통계를 아직 불러오지 못했어요. ({s.error})")
+            else:
+                for label, value in s.metrics:
+                    st.metric(label, value)
+                if s.chart is not None:
+                    st.caption(s.caption)
+                    st.altair_chart(s.chart, width="stretch")
+                st.caption(f":material/link: {s.source}, KOSIS")
+            st.button(
+                "이 길의 나와 대화하기",
+                key=f"talk-{path}",
+                icon=":material/forum:",
+                type="primary" if st.session_state.get("future_choice") == path else "secondary",
+                on_click=pick_path,
+                args=(path,),
+                width="stretch",
+            )
+
+st.space("small")
 choice = st.segmented_control(
     "어떤 갈림길이 궁금한가요?",
     list(FUTURES.keys()),
@@ -32,7 +69,6 @@ if not choice:
     st.stop()
 
 future = FUTURES[choice]
-EMOJI = {"취업/이직": "🧑‍💼", "대학원 진학": "🧑‍🔬", "창업": "🧑‍🚀"}
 
 st.space("small")
 with card("future-hero", "sky"):
@@ -95,6 +131,14 @@ history: list[dict[str, str]] = st.session_state.future_messages.setdefault(choi
 for m in history:
     with st.chat_message(m["role"], avatar=EMOJI.get(choice) if m["role"] == "assistant" else None):
         st.markdown(m["content"])
+
+if st.session_state.pop("future_jump", False) and not history:
+    st.html(
+        "<script>setTimeout(()=>{const t=window.parent.document.querySelector("
+        "'[data-testid=\"stChatInput\"] textarea')||document.querySelector("
+        "'[data-testid=\"stChatInput\"] textarea');if(t){t.focus();t.scrollIntoView({block:'end'});}},400);</script>",
+        unsafe_allow_javascript=True,
+    )
 
 prompt = st.chat_input(f"'{choice}'을 고른 3년 뒤의 나에게 물어보세요", key="future_input", submit_mode="disable")
 if prompt:

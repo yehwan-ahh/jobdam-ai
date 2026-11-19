@@ -63,13 +63,13 @@ def future_evidence(choice: str, major: str | None = None) -> tuple[str | None, 
     chunks: list[str] = []
     sources: list[str] = []
     if kosis.is_enabled():
-        for key in kosis.FUTURE_TABLES.get(choice, []):
-            df = kosis.fetch(key)
-            table = kosis.TABLES[key]
-            if df is None or df.empty:
-                continue
-            chunks.append(f"[KOSIS · {table.title} · {table.source}]\n{df.head(30).to_csv(index=False)}")
-            sources.append(f"KOSIS {table.title}")
+        # 원자료 표 대신 미리 정리한 핵심 숫자만 넘겨 응답을 빠르고 정확하게 합니다.
+        from utils import compare
+
+        summary = compare.stats(choice)
+        if summary.evidence:
+            chunks.append(summary.evidence)
+            sources.append(f"KOSIS ({summary.source})")
     major_line = majors.evidence(major)
     if major_line:
         chunks.append(major_line)

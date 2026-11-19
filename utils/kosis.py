@@ -41,26 +41,36 @@ class KosisTable:
 TABLES: dict[str, KosisTable] = {
     # 창업 — 기업생멸행정통계(국가데이터처)
     "startup_survival_by_industry": KosisTable(
-        "101", "DT_2BD1103", "산업별 신생기업 생존율", "국가데이터처, 기업생멸행정통계", "2012~2024"
-    , item_keywords=("생존율",)),
+        "101", "DT_2BD1103", "산업별 신생기업 생존율", "국가데이터처, 기업생멸행정통계", "2012~2024",
+        params={"itmId": "T01+T03+T05+", "objL1": "ALL"}, confirmed=True,
+    ),
     "startup_survival_by_ceo_age": KosisTable(
-        "101", "DT_2BD1104", "대표자 성·연령별 신생기업 생존율", "국가데이터처, 기업생멸행정통계", "2012~2024"
-    , item_keywords=("생존율",)),
+        "101", "DT_2BD1104", "대표자 성·연령별 신생기업 생존율", "국가데이터처, 기업생멸행정통계", "2012~2024",
+        params={"itmId": "T01+T02+T03+T04+T05+", "objL1": "0", "objL2": "ALL"}, confirmed=True,
+    ),
     # 취업/이직 — 일자리이동통계(국가데이터처)
     "job_mobility_by_age": KosisTable(
-        "101", "DT_1JTJ_A001", "성별·연령별 일자리 이동", "국가데이터처, 일자리이동통계", "2017~2024"
-    , item_keywords=("이동률", "유지율", "진입률")),
+        "101", "DT_1JTJ_A001", "성별·연령별 일자리 이동", "국가데이터처, 일자리이동통계", "2017~2024",
+        # 기간(1년내 이동) · 성별(총계) · 연령(전체) · 이동유형(전체)
+        params={"itmId": "T1+", "objL1": "01", "objL2": "00", "objL3": "ALL", "objL4": "ALL"}, confirmed=True,
+    ),
     "job_mobility_by_firm_size": KosisTable(
-        "101", "DT_1JTJ_A011", "연령별·기업규모별 일자리 이동", "국가데이터처, 일자리이동통계", "2017~2024"
-    , item_keywords=("이동률", "유지율", "진입률")),
+        "101", "DT_1JTJ_A011", "연령별·기업규모별 일자리 이동", "국가데이터처, 일자리이동통계", "2017~2024",
+        # 기간(1년내 이동) · 연령(15-29세) · 기업규모(전체) · 이동유형(전체)
+        params={"itmId": "T1+", "objL1": "01", "objL2": "01", "objL3": "ALL", "objL4": "ALL"}, confirmed=True,
+    ),
     # 임금 — 고용형태별근로실태조사(고용노동부)
     "wage_by_education_age": KosisTable(
         "118", "DT_118N_PAY0004", "규모·학력·연령계층·성별 임금 및 근로조건", "고용노동부, 고용형태별노동실태조사", "2009~2025",
-        item_keywords=("임금",), all_level=2,
+        # 월임금총액 · 규모(전규모) · 학력(전체) · 성별(전체) · 연령(전체)
+        params={"itmId": "16118DD_10+", "objL1": "13102205067SIZES.00", "objL2": "ALL",
+                "objL3": "13102205067SEXS.0", "objL4": "ALL"}, confirmed=True,
     ),
     # 대학원 진학 — 고등교육기관 졸업자 취업통계(한국교육개발원)
     "grad_employment_by_field": KosisTable(
-        "334", "DT_33403N_005", "계열별 졸업상황", "한국교육개발원, 교육기관 졸업자 취업통계", "확인 필요"
+        "334", "DT_33403N_005", "계열별 졸업상황", "한국교육개발원, 교육기관 졸업자 취업통계", "최근 3년",
+        # 학제·계열(전체) · 졸업상황(취업률, 진학률)
+        params={"itmId": "ABC005+", "objL1": "ALL", "objL2": "15334HGS002009+15334HGS00200A+"}, confirmed=True,
     ),
 }
 
@@ -165,21 +175,21 @@ def load(table_key: str, recent_periods: int = 3) -> tuple[pd.DataFrame | None, 
     return df, None
 
 
-@st.cache_data(ttl=60 * 60, show_spinner=False)
-def meta_text(table_key: str) -> str:
-    """(임시 점검용) 통계표 항목·분류 메타를 텍스트로. 키는 포함하지 않습니다."""
-    table = TABLES[table_key]
-    meta, err = _get_json(
-        META_URL,
-        {"method": "getMeta", "type": "ITM", "apiKey": get_secret("KOSIS_API_KEY") or "", "orgId": table.org_id,
-         "tblId": table.tbl_id, "format": "json", "jsonVD": "Y"},
-    )
-    if err or not isinstance(meta, list):
-        return f"ERR {err}"
-    return "\n".join(
-        f"{m.get('OBJ_ID')}|{m.get('OBJ_NM')}|{m.get('ITM_ID')}|{m.get('ITM_NM')}|{m.get('UP_ITM_ID')}|{m.get('UNIT_NM')}"
-        for m in meta[:400]
-    )
+@st.cache_data(ttl=60 * 60 * 24, show_spinner=False)
+def raw(table_key: str, recent_periods: int = 1) -> tuple[pd.DataFrame | None, str | None]:
+    """코드(C1, ITM_ID 등)까지 담은 원자료. 비교 그래프처럼 행을 정확히 골라야 할 때 씁니다."""
+    key = get_secret("KOSIS_API_KEY")
+    table = TABLES.get(table_key)
+    if not key or table is None or not table.params:
+        return None, "KOSIS 키가 없어요."
+    query = {"method": "getList", "apiKey": key, "orgId": table.org_id, "tblId": table.tbl_id, "prdSe": "Y",
+             "newEstPrdCnt": str(recent_periods), "format": "json", "jsonVD": "Y", **table.params}
+    data, err = _get_json(URL, query)
+    if err or not isinstance(data, list) or not data:
+        return None, err or "조회 결과가 비어 있어요."
+    df = pd.DataFrame(data)
+    df["DT"] = pd.to_numeric(df.get("DT"), errors="coerce")
+    return df, None
 
 
 def fetch(table_key: str, recent_periods: int = 3) -> pd.DataFrame | None:
