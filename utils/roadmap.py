@@ -109,6 +109,9 @@ def generate(d: dict, start: str) -> dict:
         })
     if len(clean) < 3:
         return baseline(d)
+    seen: set[str] = set()  # 같은 자격은 처음 나온 단계에만
+    for s in clean:
+        s["certs"] = [c for c in s["certs"] if not (c in seen or seen.add(c))]
     # AI가 과정명을 바꿔 써서 걸러졌다면, 실제 훈련과정을 앞 단계부터 하나씩 붙입니다.
     if not any(s["courses"] for s in clean):
         for s, c in zip(clean, d["courses"]):
