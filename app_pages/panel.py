@@ -19,12 +19,13 @@ S.setdefault("panel_opinions", {})  # 직무별 '다른 선배 한마디' {quest
 
 
 def related_jobs(job: str, n: int = 2) -> list[str]:
-    """함께 의견을 들을 관련 직무: 패널 추천 → 같은 학과 상위 진출 직업 → 고용24 유사 직업 → 기본 패널 직무."""
+    """함께 의견을 들을 관련 직무: 패널 추천 → 고용24 이름이 비슷한 직업 → 같은 학과 상위 진출 직업 → 기본 패널 직무.
+    (학과 상위 진출 직업에는 사무직처럼 결이 다른 직업도 섞여 있어 유사 직업을 먼저 봅니다.)"""
     pool: list[str] = [r["name"] for r in S.panel_recs]
-    if S.my_major:
-        pool += majors.top_jobs(S.my_major)
     if worknet.is_enabled():
         pool += [j.get("jobNm", "") for j in (worknet.search_jobs(job, limit=5) or [])]
+    if S.my_major:
+        pool += majors.top_jobs(S.my_major)
     for personas in PANELS.values():
         pool += [p["role"] for p in personas]
     picked: list[str] = []
@@ -72,7 +73,13 @@ def parse_answer(data: dict | None) -> tuple[str, list[str]]:
     """AI가 돌려준 JSON에서 대답과 출처 목록을 꺼냅니다. 키 이름이 조금 달라도 받아 줍니다."""
     if not isinstance(data, dict):
         return "", []
-    answer = next((data[k] for k in ("answer", "reply", "response", "대답", "답변") if isinstance(data.get(k), str)), "")
+    for k in ("answer", "reply", "response", "대답", "답변"):  # {"answer": {"text": ...}} 같은 중첩도 풀어 줍니다
+        v = data.get(k)
+        if isinstance(v, dict):
+            data = {**data, k: next((x for x in v.values() if isinstance(x, str)), "")}
+        elif isinstance(v, list) and all(isinstance(x, str) for x in v):
+            data = {**data, k: chr(10).join(v)}
+    answer = next((data[k] for k in ("answer", "reply", "response", "대답", "답변") if isinstance(data.get(k), str) and data[k].strip()), "")
     if not answer:  # 가장 긴 문자열 값을 대답으로
         strings = [v for v in data.values() if isinstance(v, str)]
         answer = max(strings, key=len) if strings else ""
@@ -242,7 +249,10 @@ if S.selected_job:
                     evidence, sources = job_evidence(name, prompt, S.my_major)
                     clean = [{"role": m["role"], "content": m["content"]} for m in history[-10:]]
                     data, err = llm.generate_json(job_system(name, evidence), clean)
-                reply, used = parse_answer(data)
+                    reply, used = parse_answer(data)
+                    if not reply and data is not None:  # 형식이 어긋난 답이면 한 번만 다시 묻습니다
+                        data, err = llm.generate_json(job_system(name, evidence), clean)
+                        reply, used = parse_answer(data)
                 if not reply:
                     st.warning(err or "답변을 만들지 못했어요. 한 번 더 물어봐 주세요.", icon=":material/error:")
                     history.pop()
