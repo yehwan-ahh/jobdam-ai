@@ -19,6 +19,7 @@ S.setdefault("my_major", None)  # 고른 학과(위젯이 사라져도 유지)
 
 def choose(job: dict) -> None:
     S.selected_job = job
+    S.just_chosen = True  # 다음 화면에서 입력창으로 포커스
 
 
 def back_to_explore() -> None:
@@ -113,20 +114,20 @@ if S.selected_job:
             if st.button("이 직무로 '3년 뒤의 나' 보기", icon=":material/timeline:", type="primary"):
                 st.switch_page("app_pages/future.py")
 
-    if training.is_enabled():
-        st.space("small")
-        with card("job-training", "white"):
-            training.render(name)
-
     st.space("small")
-    st.subheader(f"{name} 선배에게 물어보기", anchor=False)
-    st.caption("하루 일과, 준비 방법, 힘든 점, 연봉처럼 궁금한 걸 편하게 물어보세요. 실명·연락처는 적지 말아 주세요.")
+    st.subheader(f"{name} 선배와 대화", anchor=False, help="실명·연락처 같은 개인정보는 적지 말아 주세요.")
 
     history: list[dict[str, str]] = S.panel_job_chats.setdefault(name, [])
+    # 선배의 첫 인사 (대화 시작 유도)
+    with st.chat_message("assistant", avatar="🧑‍💼"):
+        st.markdown(
+            f"안녕하세요, **{name}** 일을 하고 있는 선배예요. "
+            "하루 일과, 연봉, 준비 방법, 힘든 점… 뭐든 편하게 물어봐요 👇"
+        )
     quick = None
     if not history:
         quick = st.pills(
-            "이렇게 물어볼 수 있어요",
+            "이렇게 물어봐도 돼요",
             ["하루는 어떻게 보내요?", "지금부터 뭘 준비하면 돼요?", "가장 힘든 점은 뭐예요?", "연봉과 전망은 어때요?"],
             key=f"quick_{name}",
         )
@@ -136,7 +137,33 @@ if S.selected_job:
             if msg["role"] == "assistant" and "sources" in msg:
                 render_sources(msg["sources"], msg.get("found", []))
 
-    prompt = st.chat_input(f"{name} 선배에게 궁금한 점을 물어보세요", key="job_input", submit_mode="disable") or quick
+    if training.is_enabled():
+        st.space("small")
+        with st.expander("이 직무를 준비할 국비 지원 교육과정 보기", icon=":material/school:"):
+            training.render(name)
+
+    if not history:
+        # 첫 질문 전까지: 입력창 안내 + 은은한 강조 + 입력창으로 포커스
+        st.caption("👇 맨 아래 입력창에 질문을 적거나, 위 버튼을 눌러 보세요.")
+        st.html(
+            "<style>[data-testid='stChatInput']{animation: jdPulse 1.6s ease-in-out 3;}</style>"
+        )
+        if S.pop("just_chosen", False):
+            st.html(
+                "<script>setTimeout(()=>{const t=window.parent.document.querySelector("
+                "'[data-testid=\"stChatInput\"] textarea')||document.querySelector("
+                "'[data-testid=\"stChatInput\"] textarea');if(t){t.focus();t.scrollIntoView({block:'end'});}},400);</script>",
+                unsafe_allow_javascript=True,
+            )
+
+    prompt = (
+        st.chat_input(
+            f"{name} 선배에게 궁금한 걸 물어보세요 (예: 신입 연봉은 얼마예요?)",
+            key="job_input",
+            submit_mode="disable",
+        )
+        or quick
+    )
     if prompt:
         with st.chat_message("user"):
             st.write(prompt)

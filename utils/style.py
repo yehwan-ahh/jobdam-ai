@@ -60,6 +60,25 @@ h1, h2, h3 {{ letter-spacing: -0.02em; }}
 [data-testid="stBaseButton-pillsActive"] {{ background: #111111 !important; color: #FFFFFF !important; border-color: #111111 !important; }}
 [data-testid="stBaseButton-pillsActive"] p {{ color: #FFFFFF !important; }}
 
+/* 하단 채팅 입력창: 흰 바탕 + 검정 테두리로 또렷하게 */
+[data-testid="stChatInput"] {{
+    background: #FFFFFF !important;
+    border: 1.5px solid #111111 !important;
+    border-radius: 18px !important;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.10);
+}}
+[data-testid="stChatInput"] textarea {{ color: #111111 !important; font-size: 1rem; }}
+[data-testid="stChatInput"] textarea::placeholder {{ color: #555555 !important; opacity: 1; }}
+[data-testid="stChatInputSubmitButton"] {{ background: #111111 !important; color: #FFFFFF !important; border-radius: 999px !important; }}
+[data-testid="stChatInputSubmitButton"] svg {{ fill: #FFFFFF !important; color: #FFFFFF !important; }}
+[data-testid="stChatInput"]:focus-within {{ border-color: #000000 !important; box-shadow: 0 0 0 3px rgba(17,17,17,0.12), 0 6px 24px rgba(0,0,0,0.10); }}
+[data-testid="stChatInput"] textarea {{ min-height: 3rem; }}
+[data-testid="stBottom"] > div {{ background: linear-gradient(to top, #FFFFFF 70%, rgba(255,255,255,0)); border-top: 1px solid #E5E5E5; }}
+@keyframes jdPulse {{
+    0%, 100% {{ box-shadow: 0 0 0 0 rgba(17, 17, 17, 0.35), 0 6px 24px rgba(0, 0, 0, 0.10); }}
+    50% {{ box-shadow: 0 0 0 8px rgba(17, 17, 17, 0.0), 0 6px 24px rgba(0, 0, 0, 0.10); }}
+}}
+
 /* 채팅 말풍선: 흰색 카드 박스로 글씨를 또렷하게 */
 [data-testid="stChatMessage"] {{
     background: #FFFFFF;
