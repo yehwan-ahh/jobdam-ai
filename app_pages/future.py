@@ -1,6 +1,6 @@
 import streamlit as st
 
-from utils import compare, kosis, llm, majors
+from utils import compare, kosis, llm, majors, profile
 from utils.demo_data import DEMO_NOTICE, FUTURES
 from utils.evidence import future_evidence, show_sources
 from utils.prompts import find_personal_info, future_system
@@ -11,8 +11,14 @@ if not any(st.session_state.get("future_messages", {}).values()) and not st.sess
     scroll_to_top()
 st.caption("갈림길을 고르면 그 길을 걸은 '3년 뒤의 나'가 좋았던 점과 아쉬웠던 점을 들려줍니다.")
 target_job = (st.session_state.get("selected_job") or {}).get("name")
-if target_job:
-    st.badge(f"직무 패널에서 고른 직무: {target_job}", icon=":material/work:", color="blue")
+_me = profile.get()
+with st.container(horizontal=True):
+    if target_job:
+        st.badge(f"직무 패널에서 고른 직무: {target_job}", icon=":material/work:", color="blue")
+    if _me:
+        st.badge(f"내 프로필: {profile.summary_line(_me)}", icon=":material/person_search:", color="gray")
+if not _me:
+    st.caption(":material/person_search: '내 프로필'을 채우면 3년 뒤의 내가 내 성향·가치관에 맞춰 이야기해요.")
 
 if not llm.is_enabled():
     st.info(DEMO_NOTICE, title="시연 모드", icon=":material/science:")
@@ -160,7 +166,7 @@ if prompt:
         if llm.is_enabled():
             with st.spinner("3년 뒤의 내가 생각을 정리하고 있어요"):
                 evidence, used = future_evidence(choice, my_major)
-                result = llm.generate(future_system(choice, evidence, target_job), history[-10:])
+                result = llm.generate(future_system(choice, evidence, target_job, profile.prompt_block(target_job)), history[-10:])
             if not result.text:
                 st.warning(result.error or "답변을 만들지 못했어요.", icon=":material/error:")
                 history.pop()

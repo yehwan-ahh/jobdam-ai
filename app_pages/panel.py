@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from utils import interviews, llm, majors, training, worknet
+from utils import interviews, llm, majors, profile, training, worknet
 from utils.demo_data import DEMO_NOTICE, PANELS
 from utils.evidence import job_evidence, recommend_candidates
 from utils.prompts import answer_mode, find_personal_info, job_system, panel_opinion_system, recommend_system
@@ -142,6 +142,8 @@ if S.selected_job:
             st.markdown(job["why"])
         if job.get("basis"):
             st.caption(f":material/link: 추천 근거: {job['basis']}")
+        with st.expander("나와 이 직무의 적합도 (공공데이터 비교)", icon=":material/person_search:", expanded=bool(profile.get())):
+            profile.render_fit(name, "panel")
         with st.container(horizontal=True):
             st.button("다른 직무 보기", icon=":material/arrow_back:", on_click=back_to_explore)
             if st.button("이 직무로 '3년 뒤의 나' 보기", icon=":material/timeline:", type="primary"):
@@ -201,7 +203,7 @@ if S.selected_job:
             with st.spinner(f"{', '.join(others)} 선배에게도 물어보는 중…"):
                 bundles = [job_evidence(o, question, S.my_major) for o in others]
                 systems = [
-                    panel_opinion_system(o, ev, [name] + [x for x in others if x != o])
+                    panel_opinion_system(o, ev, [name] + [x for x in others if x != o], profile.prompt_block())
                     for o, (ev, _) in zip(others, bundles)
                 ]
                 results = llm.generate_json_many(systems, [{"role": "user", "content": question}])
@@ -253,10 +255,10 @@ if S.selected_job:
                 with st.spinner("대답을 생각하는 중…"):
                     evidence, sources = job_evidence(name, prompt, S.my_major)
                     clean = [{"role": m["role"], "content": m["content"]} for m in history[-10:]]
-                    data, err = llm.generate_json(job_system(name, evidence), clean)
+                    data, err = llm.generate_json(job_system(name, evidence, profile.prompt_block(name)), clean)
                     reply, used = parse_answer(data)
                     if not reply and data is not None:  # 형식이 어긋난 답이면 한 번만 다시 묻습니다
-                        data, err = llm.generate_json(job_system(name, evidence), clean)
+                        data, err = llm.generate_json(job_system(name, evidence, profile.prompt_block(name)), clean)
                         reply, used = parse_answer(data)
                 if not reply:
                     st.warning(err or "답변을 만들지 못했어요. 한 번 더 물어봐 주세요.", icon=":material/error:")
@@ -360,7 +362,7 @@ if prompt:
             if llm.is_enabled():
                 with st.spinner("패널이 어울리는 직무를 고르고 있어요"):
                     data, err = llm.generate_json(
-                        recommend_system(candidates, majors.evidence(S.my_major)), S.panel_explore[-8:]
+                        recommend_system(candidates, majors.evidence(S.my_major), profile.prompt_block()), S.panel_explore[-8:]
                     )
                 if data is None:
                     st.warning(err or "추천을 만들지 못했어요.", icon=":material/error:")

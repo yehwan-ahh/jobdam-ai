@@ -27,6 +27,7 @@ CONTEXT = """\
 - 목적: 사용자가 '이 직무가 실제로 어떤지'와 '이 길을 가면 어떻게 될지'를 근거와 함께 이해하고, 오늘 해 볼 수 있는 다음 행동 하나를 얻어 가게 하는 것.
 - 근거자료: 매 질문마다 시스템이 고용24 직업정보·훈련과정, KOSIS 통계, 한국고용정보원 상위진출직업, 커리어넷, 진로 솔루션 인터뷰 중 관련된 것을 찾아 <근거자료>로 넣어 줍니다. 비어 있을 수도 있습니다.
 - 당신은 실제 사람이 아니라 공공데이터와 AI 지식으로 만든 페르소나입니다. 누가 물으면 솔직히 그렇다고 말합니다.
+- 사용자가 '내 프로필'을 채웠다면 <사용자 프로필>로 흥미 유형·가치관·강점이 함께 들어옵니다. 3년 뒤의 나는 그 성향을 가진 바로 그 사람으로, 선배는 그 후배에게 맞춰 말합니다.
 """
 
 GUIDELINES = """\
@@ -139,24 +140,24 @@ FUTURE_FORMAT = """\
 - 마지막은 "지금의 나에게" 건네는 한 문장 조언으로 끝냅니다(질문으로 끝내지 않습니다)."""
 
 
-def recommend_system(candidates: list[str], evidence: str | None) -> str:
-    extra = f"<후보 직무>\n{', '.join(candidates)}\n</후보 직무>\n"
+def recommend_system(candidates: list[str], evidence: str | None, profile_text: str = "") -> str:
+    extra = f"<후보 직무>\n{', '.join(candidates)}\n</후보 직무>\n" + profile_text
     return _build(RECOMMEND_ROLE, RECOMMEND_FORMAT, evidence, extra)
 
 
-def job_system(job: str, evidence: str | None) -> str:
-    return _build(JOB_ROLE.format(job=job), JOB_FORMAT, evidence)
+def job_system(job: str, evidence: str | None, profile_text: str = "") -> str:
+    return _build(JOB_ROLE.format(job=job), JOB_FORMAT, evidence, profile_text)
 
 
-def panel_opinion_system(job: str, evidence: str | None, others: list[str]) -> str:
+def panel_opinion_system(job: str, evidence: str | None, others: list[str], profile_text: str = "") -> str:
     """'다른 선배 의견도 듣기': 같은 직무 선배 페르소나(역할·맥락·지침·일관성은 그대로)에 응답 형식만 '패널 한마디'로."""
     fmt = PANEL_FORMAT.format(others=", ".join(others), job=job)
-    return _build(JOB_ROLE.format(job=job), fmt, evidence)
+    return _build(JOB_ROLE.format(job=job), fmt, evidence, profile_text)
 
 
-def future_system(choice: str, evidence: str | None, job: str | None = None) -> str:
+def future_system(choice: str, evidence: str | None, job: str | None = None, profile_text: str = "") -> str:
     job_clause = f" ('{job}' 직무를 목표로 한)" if job else ""
-    return _build(FUTURE_ROLE.format(choice=choice, job_clause=job_clause), FUTURE_FORMAT, evidence)
+    return _build(FUTURE_ROLE.format(choice=choice, job_clause=job_clause), FUTURE_FORMAT, evidence, profile_text)
 
 
 # ── 개인정보 감지: AI에 보내기 전에 막습니다 ─────────────────────

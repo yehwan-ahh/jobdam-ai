@@ -27,6 +27,12 @@ page = st.navigation(
                 help="오늘의 진로 탐색 현황과 바로가기를 한눈에 보는 홈 대시보드입니다.",
             ),
             st.Page(
+                "app_pages/profile.py",
+                title="내 프로필",
+                icon=":material/person_search:",
+                help="간이 흥미 체크와 가치관·강점을 고르면 대화와 직무 적합도가 나에게 맞춰져요.",
+            ),
+            st.Page(
                 "app_pages/panel.py",
                 title="직무 패널",
                 icon=":material/groups:",
