@@ -28,9 +28,14 @@ def related_jobs(job: str, n: int = 2) -> list[str]:
         pool += majors.top_jobs(S.my_major)
     for personas in PANELS.values():
         pool += [p["role"] for p in personas]
+    def norm(text: str) -> str:  # '응용 소프트웨어 개발자'와 '응용소프트웨어개발자'를 같은 직무로
+        return "".join(ch for ch in text if ch.isalnum())
+
+    me = norm(job)
     picked: list[str] = []
     for cand in pool:
-        if cand and cand != job and job not in cand and cand not in picked:
+        c = norm(cand)
+        if c and me not in c and c not in me and all(norm(p) != c for p in picked):
             picked.append(cand)
         if len(picked) == n:
             break
