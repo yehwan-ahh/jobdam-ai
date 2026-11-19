@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from utils import interviews, llm, majors, profile, training, worknet
+from utils import interviews, llm, majors, new_jobs, profile, training, worknet
 from utils.demo_data import DEMO_NOTICE, PANELS
 from utils.evidence import job_evidence, recommend_candidates
 from utils.prompts import answer_mode, find_personal_info, job_system, panel_opinion_system, recommend_system
@@ -142,6 +142,14 @@ if S.selected_job:
             st.markdown(job["why"])
         if job.get("basis"):
             st.caption(f":material/link: 추천 근거: {job['basis']}")
+        _card = new_jobs.get(name)
+        if _card:
+            st.badge("AI 시대 새 직업 · 공공 통계 없음", icon=":material/rocket_launch:", color="gray")
+            st.caption(
+                f":material/info: 공공 직업분류에 아직 없는 직업이라, 연봉·전망 숫자는 가장 가까운 공공 직업 "
+                f"'{_card['related']}'(고용24) 기준으로 알려 줘요."
+                + (" 실제 채용 사례: " + " · ".join(f"[{x['title']}]({x['url']})" for x in _card["sources"][:2]) if _card.get("sources") else "")
+            )
         with st.expander("나와 이 직무의 적합도 (공공데이터 비교)", icon=":material/person_search:", expanded=bool(profile.get())):
             profile.render_fit(name, "panel")
         with st.container(horizontal=True):

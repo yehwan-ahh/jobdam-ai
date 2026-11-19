@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from utils import careernet, interviews, kosis, majors, training, worknet
+from utils import careernet, interviews, kosis, majors, new_jobs, training, worknet
 
 
 def _careernet(role: str) -> str | None:
@@ -86,18 +86,25 @@ def job_evidence(job: str, question: str = "", major: str | None = None) -> tupl
     """선택한 직무 하나에 대한 근거(커리어넷·고용24·현직자 인터뷰·학과)."""
     chunks: list[str] = []
     sources: list[str] = []
+    card = new_jobs.get(job)  # AI 시대 새 직업이면 카드 + 가장 가까운 공공 직업으로
+    public = card["related"] if card else job
+    if card:
+        chunks.append(new_jobs.evidence(job) or "")
+        sources.append(new_jobs.SOURCE)
     if careernet.is_enabled():
-        text = _careernet(job)
+        text = _careernet(public)
         if text:
-            chunks.append(f"[커리어넷 · {job}]\n{text}")
+            chunks.append(f"[커리어넷 · {public}]\n{text}")
             sources.append(careernet.SOURCE)
     if worknet.is_enabled():
-        text = _worknet(job)
+        text = _worknet(public)
         if text:
-            chunks.append(f"[고용24 · {job}에 가장 가까운 직업 정보 (직업명이 다르면 '관련 직업'으로 소개)]\n{text}")
+            label = (f"'{job}'과 가장 가까운 공공 직업 '{public}' 정보 (숫자는 이 관련 직업 기준이라고 밝힘)" if card
+                     else f"{job}에 가장 가까운 직업 정보 (직업명이 다르면 '관련 직업'으로 소개)")
+            chunks.append(f"[고용24 · {label}]\n{text}")
             sources.append(worknet.SOURCE)
     if training.is_enabled():
-        text = training.evidence(job)
+        text = training.evidence(card["keywords"][0] if card else job)
         if text:
             chunks.append(text)
             sources.append(training.SOURCE)
@@ -125,5 +132,6 @@ def recommend_candidates(major: str | None = None) -> list[str]:
     for personas in PANELS.values():
         names += [p["role"] for p in personas]
     names += sorted(majors.load()["직업분류명"].unique().tolist())  # 상위진출직업 데이터의 직업 146개
+    names += new_jobs.names()  # AI 시대 새 직업 카드
     seen: set[str] = set()
     return [n for n in names if not (n in seen or seen.add(n))]

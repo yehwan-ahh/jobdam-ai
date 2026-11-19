@@ -10,7 +10,7 @@ import re
 
 import streamlit as st
 
-from utils import worknet
+from utils import new_jobs, worknet
 from utils.secrets import get_secret
 
 STATE = "profile"
@@ -121,7 +121,8 @@ def job_traits(job: str) -> dict | None:
     """고용24 직업정보의 흥미·가치관·능력·성격 점수. 못 찾으면 None."""
     if not worknet.is_enabled():
         return None
-    found = worknet.search_jobs(job, limit=1)
+    card = new_jobs.get(job)
+    found = worknet.search_jobs(card["related"] if card else job, limit=1)
     if not found:
         return None
     root = worknet._get(
@@ -141,7 +142,7 @@ def job_traits(job: str) -> dict | None:
         if code:
             interest.append((code, score))
     return {
-        "name": found[0].get("jobNm", job),
+        "name": found[0].get("jobNm", job) + (" · 새 직업의 가장 가까운 공공 직업 기준" if card else ""),
         "interest": interest,
         "values": _parse(field("jobVals")),
         "abilities": _parse(field("jobAbil")),

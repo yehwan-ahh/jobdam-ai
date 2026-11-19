@@ -3,7 +3,7 @@
 AI가 없거나 실패하면 같은 데이터로 기본 로드맵을 만들어 화면이 비지 않게 합니다.
 """
 
-from utils import compare, kosis, llm, profile, qnet, training
+from utils import compare, kosis, llm, new_jobs, profile, qnet, training
 
 STAGES = ["지금 ~ 3개월", "3 ~ 6개월", "6개월 ~ 1년", "1 ~ 3년"]
 STARTS = ["대학교 1~2학년", "대학교 3학년", "대학교 4학년·졸업 예정", "졸업 후 준비 중", "사회초년생(1~2년 차)"]
@@ -22,17 +22,20 @@ def gather(job: str, path: str) -> dict:
     gaps = profile.fit(p, t)["gaps"] if (p and t) else abilities[:3]
     certs = (t["certs"] if t else [])[:4]
     cert_rounds = {c: qnet.next_rounds(c) for c in certs}
-    courses = (training.courses(job, limit=3) if training.is_enabled() else None) or []
+    card = new_jobs.get(job)
+    course_kw = card["keywords"][0] if card else job
+    courses = (training.courses(course_kw, limit=3) if training.is_enabled() else None) or []
     stat = compare.stats(path) if kosis.is_enabled() else None
     return {
         "job": job, "path": path, "job_name": t["name"] if t else job,
         "abilities": abilities, "gaps": gaps, "certs": certs, "cert_rounds": cert_rounds,
-        "courses": courses, "stat": stat, "has_traits": bool(t),
+        "courses": courses, "stat": stat, "has_traits": bool(t), "card": card,
     }
 
 
 def evidence_text(d: dict) -> str:
-    lines = [f"[고용24 · '{d['job_name']}' 직업정보]"]
+    lines = [new_jobs.evidence(d["job"]) or ""] if d.get("card") else []
+    lines.append(f"[고용24 · '{d['job_name']}' 직업정보]")
     if d["abilities"]:
         lines.append("- 중요한 능력(점수 높은 순): " + ", ".join(d["abilities"]))
     if d["gaps"]:
