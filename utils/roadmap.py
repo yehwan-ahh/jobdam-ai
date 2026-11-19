@@ -71,6 +71,17 @@ def baseline(d: dict) -> dict:
     }
 
 
+DEFAULT_TITLES = ["방향 잡기", "역량 쌓기", "증명하기", "자리 잡기"]
+
+
+def _title(raw, i: int) -> str:
+    """AI가 단계 이름 대신 기간('지금~3개월')을 넣으면 기본 이름으로 바꿉니다."""
+    t = str(raw or "").strip()
+    if not t or any(k in t for k in ("개월", "년", "지금")) or len(t) > 12:
+        return DEFAULT_TITLES[min(i, 3)]
+    return t
+
+
 def generate(d: dict, start: str) -> dict:
     """AI 로드맵. 실패하면 기본 로드맵."""
     from utils.prompts import roadmap_system
@@ -89,7 +100,7 @@ def generate(d: dict, start: str) -> dict:
             continue
         clean.append({
             "period": STAGES[min(i, 3)],
-            "title": str(s.get("title", ""))[:20] or f"{i + 1}단계",
+            "title": _title(s.get("title"), i),
             "goals": [str(x) for x in (s.get("goals") or [])][:3],
             "actions": [str(x) for x in (s.get("actions") or [])][:3],
             # 자격·과정은 실제 데이터에 있는 것만 남깁니다(지어낸 이름 제거)

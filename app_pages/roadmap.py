@@ -105,7 +105,7 @@ def road_svg(plan: dict, rm: dict) -> str:
 
 svg = road_svg(plan, rm)
 st.space("small")
-st.html(svg)
+st.image(svg, width="stretch")  # st.html은 SVG를 걸러 내서 이미지로 그립니다
 
 # 이 길의 숫자(KOSIS)
 stat = data.get("stat")
