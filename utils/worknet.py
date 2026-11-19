@@ -109,12 +109,26 @@ def job_summary(job_cd: str) -> dict[str, str] | None:
     return data
 
 
+def format_manwon(n: int) -> str:
+    """만원 단위 숫자를 읽기 쉬운 금액으로: 10250 → '1억 250만 원', 5000 → '5,000만 원'."""
+    if n >= 10000:
+        eok, man = divmod(n, 10000)
+        return f"{eok}억 {man:,}만 원" if man else f"{eok}억 원"
+    return f"{n:,}만 원"
+
+
+def readable_money(text: str) -> str:
+    """'10250만원'처럼 붙은 금액 표기만 읽기 쉬운 형식으로 바꿉니다(내용·수치는 그대로)."""
+    return re.sub(r"(\d[\d,]*)\s*만\s*원", lambda m: format_manwon(int(m.group(1).replace(",", ""))), text)
+
+
 def summarize(job_name: str, data: dict[str, str]) -> str:
-    """원문을 고치지 않고 필드별로 그대로 옮깁니다(변경금지 조건)."""
+    """원문 내용은 고치지 않고 필드별로 옮깁니다(변경금지 조건). 금액은 표기만 읽기 쉽게 맞춥니다."""
     lines = [f"직업명: {job_name}"]
     for key, label in SUMMARY_FIELDS.items():
         if data.get(key):
-            lines.append(f"{label}: {data[key]}")
+            value = readable_money(data[key]) if key == "sal" else data[key]
+            lines.append(f"{label}: {value}")
     if data.get("relCert"):
         lines.append(f"관련 자격: {data['relCert']}")
     if data.get("relMajor"):
