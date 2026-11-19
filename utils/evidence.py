@@ -109,7 +109,7 @@ def job_evidence(job: str, question: str = "", major: str | None = None) -> tupl
 
 
 def recommend_candidates(major: str | None = None) -> list[str]:
-    """추천 후보: 학과 상위 진출 직업 + 현직자 인터뷰가 있는 직업 + 잡담 기본 패널 직무."""
+    """추천 후보: 학과 상위 진출 직업 + 현직자 인터뷰 직업 + 잡담 기본 패널 직무 + 상위진출직업 데이터의 전체 직업."""
     from utils.demo_data import PANELS
 
     names: list[str] = []
@@ -119,5 +119,6 @@ def recommend_candidates(major: str | None = None) -> list[str]:
         names += interviews.jobs()
     for personas in PANELS.values():
         names += [p["role"] for p in personas]
+    names += sorted(majors.load()["직업분류명"].unique().tolist())  # 상위진출직업 데이터의 직업 146개
     seen: set[str] = set()
     return [n for n in names if not (n in seen or seen.add(n))]
