@@ -21,8 +21,12 @@ ORDER = [
     "utils.majors",
     "utils.interviews",
     "utils.training",
+    "utils.qnet",
     "utils.llm",
+    "utils.compare",
     "utils.evidence",
+    "utils.profile",
+    "utils.roadmap",
     "utils.status",
 ]
 _MTIMES: dict[str, float] = {}
