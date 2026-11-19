@@ -30,7 +30,7 @@ page = st.navigation(
                 "app_pages/panel.py",
                 title="직무 패널",
                 icon=":material/groups:",
-                help="관심 분야를 고르면 직무별 AI 페르소나가 패널로 등장해 업무와 필요 역량을 이야기합니다.",
+                help="학과나 직무를 고르면 그 직무 선배와 대화하며 하는 일·연봉·전망을 알아봅니다.",
             ),
             st.Page(
                 "app_pages/future.py",
@@ -75,5 +75,5 @@ hot_reload.remember()
 st.space("medium")
 st.caption(
     "잡담(Job談) · 2026 대한민국 청년 CAREER FAIR AI 해커톤 출품 프로토타입 · "
-    "데이터 출처: 한국직업능력연구원 커리어넷, 국가데이터처 KOSIS"
+    "데이터 출처: 한국고용정보원 고용24, 국가데이터처 KOSIS, 한국고용정보원 상위진출직업"
 )

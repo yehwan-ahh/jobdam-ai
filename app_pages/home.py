@@ -27,10 +27,13 @@ with card("hero", "peach", parent=hero):
         st.markdown("현직자 AI 패널과 **3년 뒤의 나**가 함께 고민해 드릴게요.")
         st.page_link("app_pages/panel.py", label="패널 만나러 가기", icon=":material/arrow_forward:")
 
-persona_count = sum(len(v) for v in PANELS.values())
+from utils import majors as _majors
+_df = _majors.load()
+job_count = _df["직업분류명"].nunique()
+major_count = _df["학과명"].nunique()
 stats = [
-    (s1, "sky", "navy", "💼", "탐색할 수 있는 분야", f"{len(PANELS)}개", "시연 모드 기준"),
-    (s2, "peach", "peach", "🧑‍💻", "직무 페르소나", f"{persona_count}명", "분야별 3명씩"),
+    (s1, "sky", "navy", "💼", "만날 수 있는 직무 선배", f"{job_count}개", "학과 진출 데이터 기준"),
+    (s2, "peach", "peach", "🎓", "학과로 찾기", f"{major_count}개 학과", "졸업자 상위 진출 직업"),
     (s3, "mint", "teal", "🧭", "갈림길 시나리오", f"{len(FUTURES)}개", "취업·대학원·창업"),
 ]
 for col, color, tone, emoji, label, value, note in stats:
@@ -51,8 +54,8 @@ with feat:
         icon_tile("👥", "feat-panel", "navy")
         st.markdown("#### 직무 패널")
         st.caption(
-            "관심 분야를 고르면 직무별 AI 페르소나가 패널 토크처럼 등장해 "
-            "업무, 필요 역량, 전망을 이야기해요."
+            "내 학과나 궁금한 직무를 고르면 그 직무 선배와 대화하며 "
+            "하는 일, 연봉, 전망, 준비할 교육과정까지 알아볼 수 있어요."
         )
         st.page_link("app_pages/panel.py", label="패널 열기", icon=":material/arrow_forward:")
     with card("feat-future", "white", parent=f2):
@@ -69,7 +72,7 @@ with feat:
         steps = st.columns(4)
         flow = [
             ("✏️", "고민 입력", "개인정보 없이 분야·갈림길만 골라요"),
-            ("🔎", "근거 찾기", "커리어넷·KOSIS 데이터 검색"),
+            ("🔎", "근거 찾기", "고용24·KOSIS 데이터 검색"),
             ("💬", "페르소나 대화", "근거를 바탕으로 대화체 설명"),
             ("📎", "출처 표시", "추정은 추정이라고 밝혀요"),
         ]
@@ -80,7 +83,7 @@ with feat:
 
 visited: set[str] = st.session_state.get("visited", set())
 checklist = [
-    ("🎯", "관심 분야 골라 패널 보기", "panel", "app_pages/panel.py"),
+    ("🎯", "직무 골라 선배와 대화하기", "panel", "app_pages/panel.py"),
     ("🔭", "3년 뒤의 나 만나기", "future", "app_pages/future.py"),
     ("📎", "데이터 출처 확인하기", "data", "app_pages/data.py"),
 ]

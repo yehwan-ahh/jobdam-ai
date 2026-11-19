@@ -67,6 +67,7 @@ h1, h2, h3 {{ letter-spacing: -0.02em; }}
     border-radius: 18px !important;
     box-shadow: 0 6px 24px rgba(0, 0, 0, 0.10);
 }}
+[data-testid="stChatInput"] > div, [data-testid="stChatInput"] textarea {{ background: #FFFFFF !important; }}
 [data-testid="stChatInput"] textarea {{ color: #111111 !important; font-size: 1rem; }}
 [data-testid="stChatInput"] textarea::placeholder {{ color: #555555 !important; opacity: 1; }}
 [data-testid="stChatInputSubmitButton"] {{ background: #111111 !important; color: #FFFFFF !important; border-radius: 999px !important; }}
