@@ -45,6 +45,21 @@ _CSS = f"""
 .jd-hero-emoji {{ font-size: 6rem; line-height: 1; text-align: center; padding-top: 0.5rem; }}
 h1, h2, h3 {{ letter-spacing: -0.02em; }}
 
+/* 직무 고르기 옵션 카드: 진한 테두리 + 번호 배지 */
+[class*="st-key-card-white-opt-"] {{
+    border: 1.5px solid #111111;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04), 0 12px 32px rgba(0, 0, 0, 0.06);
+}}
+.jd-opt-head {{ display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.1rem; }}
+.jd-opt-num {{
+    width: 2rem; height: 2rem; border-radius: 999px; background: #111111; color: #FFFFFF;
+    display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1rem;
+}}
+.jd-opt-title {{ font-size: 1.35rem; font-weight: 800; color: #111111; letter-spacing: -0.02em; }}
+/* 선택된 pill(직업)을 검정 배경·흰 글씨로 */
+[data-testid="stBaseButton-pillsActive"] {{ background: #111111 !important; color: #FFFFFF !important; border-color: #111111 !important; }}
+[data-testid="stBaseButton-pillsActive"] p {{ color: #FFFFFF !important; }}
+
 /* 채팅 말풍선: 흰색 카드 박스로 글씨를 또렷하게 */
 [data-testid="stChatMessage"] {{
     background: #FFFFFF;
