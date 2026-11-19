@@ -25,8 +25,8 @@ with c2:
 with c3:
     start = st.selectbox("지금 나는", roadmap.STARTS, index=2, key="rm_start")
 me = profile.get()
-st.caption(f":material/person_search: 내 프로필 반영: {profile.summary_line(me)}" if me else
-           ":material/person_search: '내 프로필'을 채우면 내 강점·채울 능력에 맞춰 단계 목표가 달라져요.")
+st.caption(f":material/person_search: 직무 간이검사 반영: {profile.summary_line(me)}" if me else
+           ":material/person_search: '직무 간이검사'를 하면 내 강점·채울 능력에 맞춰 단계 목표가 달라져요.")
 
 go = st.button("로드맵 그리기", type="primary", icon=":material/route:", disabled=not (job and path))
 if go:

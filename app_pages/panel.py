@@ -320,25 +320,65 @@ with card("opt-major", "white", parent=opt1):
 
 # ── 옵션 2: 직접 고르기 ──────────────────────────────────────
 with card("opt-direct", "white", parent=opt2):
-    option_header(2, "직무 직접 고르기", "궁금한 직무가 있다면 목록에서 고르거나 이름을 입력해요.")
-    job2 = st.selectbox(
-        "직무 이름",
-        recommend_candidates(S.my_major),
-        index=None,
-        placeholder="예: 데이터 분석가, UX/UI디자이너",
-        accept_new_options=True,
-        key="opt2_job",
-    )
-    st.button(
-        "이 직무로 대화하기" if job2 else "직무를 골라 주세요",
-        key="opt2_go",
-        type="primary",
-        width="stretch",
-        icon=":material/forum:",
-        disabled=not job2,
-        on_click=choose,
-        args=({"name": job2 or "", "why": "", "basis": "직접 선택"},),
-    )
+    option_header(2, "직무 직접 고르기", "궁금한 직무가 있다면 목록에서 고르거나, AI 시대 새 직업에서 골라요.")
+    tab_pub, tab_new = st.tabs(["직업 목록", "🚀 AI 시대 새 직업"])
+    with tab_pub:
+        public_jobs = [n for n in recommend_candidates(S.my_major) if not new_jobs.get(n)]
+        job2 = st.selectbox(
+            "직무 이름",
+            public_jobs,
+            index=None,
+            placeholder="예: 데이터 분석가, UX/UI디자이너",
+            accept_new_options=True,
+            key="opt2_job",
+        )
+        st.button(
+            "이 직무로 대화하기" if job2 else "직무를 골라 주세요",
+            key="opt2_go",
+            type="primary",
+            width="stretch",
+            icon=":material/forum:",
+            disabled=not job2,
+            on_click=choose,
+            args=({"name": job2 or "", "why": "", "basis": "직접 선택"},),
+        )
+    with tab_new:
+        st.caption("FDE·RAG 엔지니어처럼 공공 직업분류에 아직 없는 새 직업이에요. 숫자는 가장 가까운 공공 직업 기준으로 알려 줘요.")
+        with st.expander("융합 커리어 찾기 · 내 전공과 역량으로 추천받기", icon=":material/join:"):
+            f1, f2 = st.columns(2)
+            doms = f1.multiselect("전공·도메인", new_jobs.all_domains(), key="nj_domains", placeholder="예: 반도체")
+            skls = f2.multiselect("역량·관심 기술", new_jobs.all_skills(), key="nj_skills", placeholder="예: Python")
+            if doms or skls:
+                hits = new_jobs.match(doms, skls)[:4]
+                st.markdown("**잘 이어지는 새 직업** · " + (" · ".join(j["name"] for j, _ in hits) if hits else "없음"))
+        cat = st.pills("분야", ["전체"] + new_jobs.categories(), default="전체", key="nj_cat")
+        pool = [j["name"] for j in new_jobs.jobs() if cat in (None, "전체") or j["category"] == cat]
+        if doms or skls:
+            rank = {j["name"]: sc for j, sc in new_jobs.match(doms, skls)}
+            pool.sort(key=lambda n: -rank.get(n, 0))
+        job_new = st.selectbox("새 직업", pool, index=None, placeholder=f"{len(pool)}개 중에서 골라 주세요", key="opt2_new")
+        nj = new_jobs.get(job_new)
+        if nj:
+            st.markdown(f"**{nj['name']}** · {nj['one_line']}")
+            st.markdown(" ".join(f"`{s}`" for s in nj["skills"]))
+            with st.expander("하는 일 · 준비 방법 · 출처"):
+                st.markdown("**하는 일**  \n" + "  \n".join(f"· {d}" for d in nj["duties"]))
+                st.markdown("**준비 방법**  \n" + "  \n".join(f"· {p}" for p in nj["prepare"]))
+                if nj.get("sources"):
+                    st.markdown("**실제 채용·보도 사례**  \n" + "  \n".join(f"· [{x['title']}]({x['url']})" for x in nj["sources"]))
+                else:
+                    st.caption("국내 채용 사례는 아직 확인하지 못한 신흥 직무예요.")
+                st.caption(f":material/link: 숫자는 가장 가까운 공공 직업 '{nj['related']}'(고용24) 기준 · 설명은 AI로 정리 후 검토")
+        st.button(
+            "이 직무로 대화하기" if nj else "새 직업을 골라 주세요",
+            key="opt2_new_go",
+            type="primary",
+            width="stretch",
+            icon=":material/forum:",
+            disabled=not nj,
+            on_click=choose,
+            args=({"name": nj["name"], "why": nj["one_line"], "basis": "AI 시대 새 직업 카드(잡담 큐레이션)"} if nj else {},),
+        )
 
 # ── 보조: 잘 모르겠다면 패널에게 이야기 ──────────────────────
 st.space("medium")

@@ -60,6 +60,18 @@ h1, h2, h3 {{ letter-spacing: -0.02em; }}
 [data-testid="stBaseButton-pillsActive"] {{ background: #111111 !important; color: #FFFFFF !important; border-color: #111111 !important; }}
 [data-testid="stBaseButton-pillsActive"] p {{ color: #FFFFFF !important; }}
 
+/* 직무 간이검사: 검사지처럼 문항은 크게, 다섯 칸은 모두 또렷하게 */
+[class*="st-key-pfq-row-"] {{ padding: 0.85rem 0 0.95rem; border-bottom: 1px solid #EDEDEA; }}
+.jd-q {{ font-size: 1.12rem; font-weight: 700; color: #111111; line-height: 1.5; display: flex; gap: 0.6rem; align-items: baseline; }}
+.jd-q-num {{ flex: none; width: 1.7rem; height: 1.7rem; border-radius: 999px; background: #111111; color: #FFFFFF;
+    font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center; }}
+[class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button {{
+    min-height: 2.8rem; font-size: 0.98rem; font-weight: 600; color: #333333; background: #FFFFFF; border-color: #CFCFCB;
+}}
+[class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button p {{ font-size: 0.98rem; font-weight: 600; }}
+[data-testid="stBaseButton-segmented_controlActive"] {{ background: #111111 !important; color: #FFFFFF !important; border-color: #111111 !important; }}
+[data-testid="stBaseButton-segmented_controlActive"] p {{ color: #FFFFFF !important; }}
+
 /* 하단 채팅 입력창: 흰 바탕 + 검정 테두리로 또렷하게 */
 [data-testid="stChatInput"] {{
     background: #FFFFFF !important;

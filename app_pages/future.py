@@ -1,6 +1,6 @@
 import streamlit as st
 
-from utils import compare, kosis, llm, majors, profile
+from utils import compare, kosis, llm, profile
 from utils.demo_data import DEMO_NOTICE, FUTURES
 from utils.evidence import future_evidence, show_sources
 from utils.prompts import find_personal_info, future_system
@@ -16,12 +16,28 @@ with st.container(horizontal=True):
     if target_job:
         st.badge(f"직무 패널에서 고른 직무: {target_job}", icon=":material/work:", color="blue")
     if _me:
-        st.badge(f"내 프로필: {profile.summary_line(_me)}", icon=":material/person_search:", color="gray")
+        st.badge(f"직무 간이검사: {profile.summary_line(_me)}", icon=":material/person_search:", color="gray")
 if not _me:
-    st.caption(":material/person_search: '내 프로필'을 채우면 3년 뒤의 내가 내 성향·가치관에 맞춰 이야기해요.")
+    st.caption(":material/person_search: '직무 간이검사'를 하면 3년 뒤의 내가 내 성향·가치관에 맞춰 이야기해요.")
 
 if not llm.is_enabled():
     st.info(DEMO_NOTICE, title="시연 모드", icon=":material/science:")
+
+# 순서: 직무 간이검사 → 직무 패널에서 직업 고르기 → 3년 뒤의 나
+if not target_job:
+    st.space("small")
+    with card("future-gate", "white"):
+        st.markdown("#### 먼저 직무 패널에서 직업을 골라 주세요")
+        st.markdown(
+            "'3년 뒤의 나'는 고른 직업을 목표로 걸어간 미래의 내가 이야기해요. "
+            "**① 직무 간이검사 → ② 직무 패널에서 직업 고르기 → ③ 3년 뒤의 나** 순서로 진행해요."
+        )
+        with st.container(horizontal=True):
+            if st.button("직무 패널에서 직업 고르기", type="primary", icon=":material/groups:"):
+                st.switch_page("app_pages/panel.py")
+            if not _me and st.button("직무 간이검사부터 하기", icon=":material/person_search:"):
+                st.switch_page("app_pages/profile.py")
+    st.stop()
 
 EMOJI = {"취업/이직": "🧑‍💼", "대학원 진학": "🧑‍🔬", "창업": "🧑‍🚀"}
 
@@ -126,11 +142,10 @@ if kosis.is_enabled():
                 st.dataframe(df.head(50), hide_index=True, alt=f"{t.title} 통계 표")
             st.caption(f"출처: {t.source}, KOSIS")
 
-# ── 3년 뒤의 나에게 묻기 ───────────────────────────────────
-st.space("medium")
-st.subheader("3년 뒤의 나에게 물어보기", anchor=False)
-my_major = majors.render_picker("future")
-st.caption("실명, 연락처 같은 개인정보는 적지 말아 주세요.")
+# ── 3년 뒤의 나와 대화 (아래 채팅창) ─────────────────────────
+my_major = st.session_state.get("my_major")
+st.space("small")
+st.caption(f":material/forum: 맨 아래 채팅창에서 '{choice}'을 고른 3년 뒤의 나와 바로 대화해요. 실명·연락처 같은 개인정보는 적지 말아 주세요.")
 
 if "future_messages" not in st.session_state:
     st.session_state.future_messages = {}

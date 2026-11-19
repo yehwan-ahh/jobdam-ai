@@ -28,21 +28,15 @@ page = st.navigation(
             ),
             st.Page(
                 "app_pages/profile.py",
-                title="내 프로필",
+                title="직무 간이검사",
                 icon=":material/person_search:",
-                help="간이 흥미 체크와 가치관·강점을 고르면 대화와 직무 적합도가 나에게 맞춰져요.",
+                help="가장 먼저 해 주세요. 흥미·가치관·강점을 고르면 대화와 직무 적합도가 나에게 맞춰져요.",
             ),
             st.Page(
                 "app_pages/panel.py",
                 title="직무 패널",
                 icon=":material/groups:",
                 help="관심 분야를 고르면 직무별 AI 페르소나가 패널로 등장해 업무와 필요 역량을 이야기합니다.",
-            ),
-            st.Page(
-                "app_pages/new_jobs.py",
-                title="AI 시대 새 직업",
-                icon=":material/rocket_launch:",
-                help="FDE·RAG 엔지니어처럼 공공 직업분류 밖의 새 직업과 융합 커리어를 찾아봐요.",
             ),
             st.Page(
                 "app_pages/future.py",

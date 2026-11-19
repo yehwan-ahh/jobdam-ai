@@ -229,7 +229,7 @@ def render_fit(job: str, key: str) -> None:
     """선택 직무와 내 프로필의 적합도 카드(프로필이 있을 때만)."""
     p = get()
     if not p:
-        st.caption(":material/person: '내 프로필'을 채우면 이 직무와 나의 적합도를 공공데이터로 보여 줘요.")
+        st.caption(":material/person: '직무 간이검사'를 하면 이 직무와 나의 적합도를 공공데이터로 보여 줘요.")
         return
     t = job_traits(job)
     if not t:
@@ -246,5 +246,5 @@ def render_fit(job: str, key: str) -> None:
     if f["gaps"]:
         st.markdown("**채우면 좋은 능력** · " + ", ".join(f["gaps"]))
     st.caption(
-        f":material/link: 고용24 직업정보 '{t['name']}'의 흥미·가치관·능력 점수와 내 프로필을 비교한 참고 지표예요. 공식 검사가 아니에요."
+        f":material/link: 고용24 직업정보 '{t['name']}'의 흥미·가치관·능력 점수와 내 간이검사 결과를 비교한 참고 지표예요. 공식 검사가 아니에요."
     )

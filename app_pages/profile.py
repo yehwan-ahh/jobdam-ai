@@ -1,4 +1,4 @@
-"""내 프로필: 간이 흥미 체크 + 가치관·강점 + (선택) 공식 검사 결과 입력 → 직무 적합도."""
+"""직무 간이검사: 간이 흥미 체크 + 가치관·강점 + (선택) 공식 검사 결과 입력 → 직무 적합도."""
 
 import altair as alt
 import pandas as pd
@@ -10,7 +10,7 @@ from utils.prompts import find_personal_info
 from utils.style import card
 
 S = st.session_state
-st.title("내 프로필 🧭", anchor=False)
+st.title("직무 간이검사 🧭", anchor=False)
 st.caption(
     "3분이면 끝나요. 고른 성향은 '3년 뒤의 나'와 직무 선배의 대답, 직무 적합도에 쓰여요. "
     "이 창을 닫으면 사라지고, 서버에 저장하지 않아요."
@@ -22,13 +22,18 @@ with st.form("profile_form", border=False):
     # ── 1. 간이 흥미 체크 ──────────────────────────────────────
     with card("pf-interest", "white"):
         st.markdown("#### 1. 나는 어떤 일에 끌릴까? (간이 흥미 체크 12문항)")
-        st.caption("정답은 없어요. 지금의 나와 가까운 쪽을 골라 주세요. 공식 심리검사가 아닌 참고용 체크예요.")
-        prev = saved.get("answers") or ["보통"] * len(profile.ITEMS)
+        st.caption("정답은 없어요. 문항마다 지금의 나와 가장 가까운 칸을 하나씩 골라 주세요. 공식 심리검사가 아닌 참고용 체크예요.")
+        prev = saved.get("answers") or [None] * len(profile.ITEMS)
         answers = []
         for i, (_, q) in enumerate(profile.ITEMS):
-            answers.append(
-                st.select_slider(f"{i + 1}. {q}", options=profile.SCALE, value=prev[i], key=f"pf_q{i}")
-            )
+            with st.container(key=f"pfq-row-{i}"):
+                st.html(f'<div class="jd-q"><span class="jd-q-num">{i + 1}</span>{q}</div>')
+                answers.append(
+                    st.segmented_control(
+                        f"{i + 1}번 응답", profile.SCALE, default=prev[i], key=f"pf_q{i}",
+                        label_visibility="collapsed", width="stretch",
+                    )
+                )
 
     st.space("small")
     # ── 2. 가치관·강점 ────────────────────────────────────────
@@ -91,6 +96,10 @@ with st.form("profile_form", border=False):
     submitted = st.form_submit_button("프로필 저장하고 결과 보기", type="primary", icon=":material/check:", width="stretch")
 
 if submitted:
+    missing = [str(i + 1) for i, a in enumerate(answers) if not a]
+    if missing:
+        st.warning(f"아직 고르지 않은 문항이 있어요: {', '.join(missing)}번. 모든 문항에 답해 주세요.", icon=":material/edit_note:")
+        st.stop()
     pii = find_personal_info(likes)
     if pii:
         st.warning(f"{', '.join(pii)}처럼 보이는 정보가 있어서 저장하지 않았어요. 그 부분을 빼고 다시 저장해 주세요.", icon=":material/lock:")
@@ -151,7 +160,7 @@ with card("pf-values-res", "white", parent=right):
 # ── 직무 적합도 (공공데이터) ─────────────────────────────────
 st.space("medium")
 st.subheader("나와 잘 맞는 직무 찾기", anchor=False)
-st.caption("고용24 직업정보에 직업마다 들어 있는 흥미·가치관·능력 점수와 내 프로필을 비교한 참고 지표예요.")
+st.caption("고용24 직업정보에 직업마다 들어 있는 흥미·가치관·능력 점수와 내 검사 결과를 비교한 참고 지표예요.")
 pool: list[str] = []
 if S.get("my_major"):
     pool += majors.top_jobs(S["my_major"])
