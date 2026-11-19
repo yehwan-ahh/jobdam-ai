@@ -10,9 +10,9 @@ def render_sidebar_status() -> None:
         st.markdown("**연결 상태**")
         source = llm.key_source()
         if source == "team":
-            st.badge(f"AI 연결: 팀 키 ✅ ({llm.provider_label()})", color="green")
+            st.badge(f"AI 연결: 팀 키 ✅ ({llm.provider_label()} · {llm.model()})", color="green")
         elif source == "byok":
-            st.badge(f"AI 연결: 내 키 ✅ ({llm.provider_label()})", color="green")
+            st.badge(f"AI 연결: 내 키 ✅ ({llm.provider_label()} · {llm.model()})", color="green")
         else:
             st.badge("AI 연결: 시연 모드", color="gray")
         st.badge("커리어넷: 연결됨 ✅" if careernet.is_enabled() else "커리어넷: 키 대기 중", color="green" if careernet.is_enabled() else "gray")
