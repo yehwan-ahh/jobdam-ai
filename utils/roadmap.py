@@ -109,6 +109,10 @@ def generate(d: dict, start: str) -> dict:
         })
     if len(clean) < 3:
         return baseline(d)
+    # AI가 과정명을 바꿔 써서 걸러졌다면, 실제 훈련과정을 앞 단계부터 하나씩 붙입니다.
+    if not any(s["courses"] for s in clean):
+        for s, c in zip(clean, d["courses"]):
+            s["courses"] = [c["title"]]
     return {
         "headline": str(data.get("headline", ""))[:60] or baseline(d)["headline"],
         "stages": clean,
