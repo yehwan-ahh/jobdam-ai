@@ -165,5 +165,22 @@ def load(table_key: str, recent_periods: int = 3) -> tuple[pd.DataFrame | None, 
     return df, None
 
 
+@st.cache_data(ttl=60 * 60, show_spinner=False)
+def meta_text(table_key: str) -> str:
+    """(임시 점검용) 통계표 항목·분류 메타를 텍스트로. 키는 포함하지 않습니다."""
+    table = TABLES[table_key]
+    meta, err = _get_json(
+        META_URL,
+        {"method": "getMeta", "type": "ITM", "apiKey": get_secret("KOSIS_API_KEY") or "", "orgId": table.org_id,
+         "tblId": table.tbl_id, "format": "json", "jsonVD": "Y"},
+    )
+    if err or not isinstance(meta, list):
+        return f"ERR {err}"
+    return "\n".join(
+        f"{m.get('OBJ_ID')}|{m.get('OBJ_NM')}|{m.get('ITM_ID')}|{m.get('ITM_NM')}|{m.get('UP_ITM_ID')}|{m.get('UNIT_NM')}"
+        for m in meta[:400]
+    )
+
+
 def fetch(table_key: str, recent_periods: int = 3) -> pd.DataFrame | None:
     return load(table_key, recent_periods)[0]

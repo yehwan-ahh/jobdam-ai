@@ -12,6 +12,11 @@ target_job = (st.session_state.get("selected_job") or {}).get("name")
 if target_job:
     st.badge(f"직무 패널에서 고른 직무: {target_job}", icon=":material/work:", color="blue")
 
+if st.query_params.get("kdebug") == "1" and kosis.is_enabled():  # 임시 점검용, 확인 후 삭제
+    for _k in kosis.TABLES:
+        st.text(f"### {_k}\n" + kosis.meta_text(_k))
+    st.stop()
+
 if not llm.is_enabled():
     st.info(DEMO_NOTICE, title="시연 모드", icon=":material/science:")
 
