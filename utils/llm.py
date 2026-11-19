@@ -35,18 +35,47 @@ Caller = Callable[..., LLMResult]
 
 
 # ── 공급자별 호출 ────────────────────────────────────────────
+def _is_reasoning_model(model_name: str) -> bool:
+    name = model_name.lower()
+    return name.startswith(("gpt-5", "o1", "o3", "o4"))
+
+
+def _temperature() -> float:
+    """답변 모드별 온도: balanced 0.6(자연스럽게), strict 0.3(근거에 충실). LLM_TEMPERATURE로 직접 지정 가능."""
+    custom = get_secret("LLM_TEMPERATURE")
+    if custom:
+        try:
+            return max(0.0, min(1.5, float(custom)))
+        except ValueError:
+            pass
+    return 0.3 if (get_secret("ANSWER_MODE") or "balanced").lower() == "strict" else 0.6
+
+
 def _call_openai(
     api_key: str, model_name: str, system: str, messages: list[dict[str, str]], json_mode: bool = False
 ) -> LLMResult:
     import openai
 
     client = openai.OpenAI(api_key=api_key, max_retries=2, timeout=60.0)
+    params: dict = {}
+    if _is_reasoning_model(model_name):
+        # gpt-5·o 계열: temperature 미지원, 생각 토큰까지 포함해 넉넉하게.
+        # 대화형 답변이라 기본 생각 강도는 low(빠른 응답). LLM_REASONING_EFFORT로 조절 가능.
+        params["max_completion_tokens"] = 4000
+        effort = (get_secret("LLM_REASONING_EFFORT") or "low").lower()
+        if effort in ("minimal", "low", "medium", "high"):
+            params["reasoning_effort"] = effort
+    else:
+        # gpt-4o-mini 등: temperature 사용 가능. 답변 모드에 맞춰 조절
+        params["max_completion_tokens"] = 1200
+        params["temperature"] = _temperature()
+    if json_mode:
+        params["response_format"] = {"type": "json_object"}
     try:
         response = client.chat.completions.create(
             model=model_name,
             messages=[{"role": "system", "content": system}, *messages],  # type: ignore[list-item]
-            max_completion_tokens=4000,
-            **({"response_format": {"type": "json_object"}} if json_mode else {}),
+            **params,
         )
     except openai.AuthenticationError:
         return LLMResult(None, "API 키가 올바르지 않아요. 키를 다시 확인해 주세요.")
