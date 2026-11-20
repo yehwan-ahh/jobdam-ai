@@ -39,6 +39,13 @@ _STOP = {
     "회사", "기업", "직장", "직무", "신입", "연봉", "정도", "어때요", "어때", "어떤", "어느", "무슨", "추천", "괜찮은", "좋은",
     "관련", "대표", "다니기", "다니면", "입사", "취업", "근무", "복지", "분위기", "선배", "저", "제가", "나", "내가", "요즘",
     "그", "이", "거기", "여기", "정말", "진짜", "혹시", "평균", "월급", "보수", "일하기", "곳", "어디", "어디서", "어디에",
+    "만한", "갈만한", "같은", "이런", "저런", "그런", "어떤가요", "궁금해요", "알려", "소개", "정보", "쪽",
+}
+# 영어로 공시하는 상장사의 한글 이름 → DART 회사명
+_ALIAS = {
+    "네이버": "NAVER", "엘지전자": "LG전자", "엘지화학": "LG화학", "엘지": "LG", "에스케이하이닉스": "SK하이닉스",
+    "에스케이텔레콤": "SK텔레콤", "케이티": "KT", "씨제이제일제당": "CJ제일제당", "씨제이": "CJ", "지에스": "GS",
+    "케이티앤지": "KT&G", "엔에이치투자증권": "NH투자증권", "에이치엠엠": "HMM", "케이비금융": "KB금융",
 }
 
 # 직무 이름의 단어 → 관련 업종(한국표준산업분류 대분류)
@@ -187,7 +194,7 @@ def nps_info(name: str, bizno6: str = "") -> dict | None:
     if bizno6:
         cands = [x for x in cands if str(x.get("bzowrRgstNo", "")).startswith(bizno6)] or []
     exact = [x for x in cands if norm(x.get("wkplNm", "")) == target]
-    cands = exact or ([] if bizno6 else [x for x in cands if norm(x.get("wkplNm", "")).startswith(target)])
+    cands = exact or (cands if bizno6 else [])  # 이름만으로는 정확히 같은 회사만(비슷한 이름의 다른 회사 방지)
     if not cands:
         return None
     best = sorted(cands, key=lambda x: str(x.get("dataCrtYm", "")), reverse=True)[0]
@@ -347,10 +354,11 @@ def _tokens(question: str) -> list[str]:
     return out
 
 
-def find_companies(question: str, limit: int = 2) -> list[dict]:
+def find_companies(question: str, limit: int = 2, job: str = "") -> list[dict]:
     """질문에 나온 회사를 공공데이터에서 찾아요. [{'name', 'dart', 'nps', 'sg'}]"""
     toks = _tokens(question)
     warm()
+    job_words = {norm(w) for w in re.split(r"[·\s/,()]+", job) if w} | {norm(job)}
     grams = toks + [a + b for a, b in zip(toks, toks[1:])]  # 'LG 전자'처럼 띄어 쓴 이름
     listed, every = _dart_index()
     sg_rows = {norm(r.get("coNm", "")): r for r in (smallgiants() or [])}
@@ -359,13 +367,14 @@ def find_companies(question: str, limit: int = 2) -> list[dict]:
     seen: set[str] = set()
     for g in sorted(set(grams), key=len, reverse=True):
         k = norm(g)
-        if len(k) < 2 or k in seen or g in _STOP:
+        if len(k) < 2 or k in seen or g in _STOP or k in job_words:
             continue
         hit = None
-        if k in listed and (len(k) >= 3 or talk):  # 짧은 상장사 이름(예: 대상)은 회사 이야기일 때만
-            hit = {"name": listed[k][0], "corp": listed[k][1]}
-        elif talk and k in every:
-            hit = {"name": every[k][0], "corp": every[k][1]}
+        dk = norm(_ALIAS.get(k, k))  # '네이버' → DART 이름 'NAVER'
+        if dk in listed and (len(k) >= 3 or talk):  # 짧은 상장사 이름(예: 대상)은 회사 이야기일 때만
+            hit = {"name": listed[dk][0], "corp": listed[dk][1], "query": g}
+        elif talk and dk in every:
+            hit = {"name": every[dk][0], "corp": every[dk][1], "query": g}
         elif k in sg_rows:
             hit = {"name": sg_rows[k].get("coNm"), "corp": None}
         if hit:
@@ -373,23 +382,23 @@ def find_companies(question: str, limit: int = 2) -> list[dict]:
             found.append(hit)
         if len(found) >= limit:
             break
-    # 목록에 없더라도 '○○ 회사 어때요'처럼 물으면 국민연금에서 한 번 찾아봐요(작은 회사). 추천 질문에서는 하지 않아요.
-    if not found and talk and not _RECO.search(question):
+    # 목록에 없더라도 '○○ 회사 어때요'처럼 물으면 국민연금에서 한 번 찾아봐요(작은 회사)
+    if not found and talk:
         cands = [g for g in toks if g not in _STOP and len(norm(g)) >= 2 and not re.fullmatch(r"[0-9]+", g)
-                 and not _VERBISH.search(g) and not _COMPANY_WORDS.search(g)][:2]
+                 and norm(g) not in job_words and not _VERBISH.search(g) and not _COMPANY_WORDS.search(g)][:2]
         for g in cands:
             info = nps_info(g, "") if _nps_key() else None
             if info:
                 found.append({"name": g, "corp": None, "nps_done": info})
                 break
         else:
-            if cands:
+            if cands and not _RECO.search(question):
                 found.append({"name": cands[0], "corp": None, "nps_done": None})  # 못 찾았다고 알려 주려고 남겨요
     for f in found:
         f["dart"] = dart_info(f["corp"]) if f.get("corp") else None
         f["sg"] = sg_rows.get(norm(f["name"]))
         biz = (f["dart"] or {}).get("bizno6") or ((f["sg"] or {}).get("busiNo") or "")[:6]
-        f["nps"] = f["nps_done"] if "nps_done" in f else nps_info(f["name"], biz)
+        f["nps"] = f["nps_done"] if "nps_done" in f else nps_info(f.get("query") or f["name"], biz)
     return [f for f in found if f["dart"] or f["nps"] or f["sg"]] + [
         {"name": f["name"], "missing": True} for f in found if not (f["dart"] or f["nps"] or f["sg"])
     ]
@@ -403,7 +412,7 @@ def evidence(question: str, job: str) -> tuple[str | None, list[str]]:
     lines: list[str] = []
     sources: list[str] = []
     try:
-        named = find_companies(question)
+        named = find_companies(question, job=job)
     except Exception:
         named = []
     for f in named:
@@ -431,7 +440,8 @@ def evidence(question: str, job: str) -> tuple[str | None, list[str]]:
             sources.append(SG_SOURCE)
     if not lines:
         return None, []
-    rule = ("[회사 정보 쓰는 법] 회사 소개는 아래 숫자만 그대로 쓰고 3~4문장으로 짧게 해요. 아래 줄을 그대로 붙여 넣지 말고 자연스러운 문장으로 풀어 써요. "
+    rule = ("[회사 정보 쓰는 법] 회사 소개는 아래 숫자만 그대로 쓰고 3~4문장으로 짧게 해요. 아래 줄을 그대로 붙여 넣지 말고 자연스러운 문장으로 풀어 쓰며, "
+            "본문에 괄호나 [ ]로 근거를 덧붙이지 않아요. '3년 뒤의 나'라면 그 회사에 실제로 다녔다고 지어내지 말고 '그런 회사라면'처럼 말해요. "
             "채용 중인지는 알 수 없다고 밝혀요. 아래 목록에 없는 회사 이름은 새로 꺼내지 않고, 궁금한 회사 이름을 물어보면 공공데이터로 알려 줄 수 있다고 안내해요. "
             "출처를 적을 때는 각 줄 끝 [ ] 안의 기관 이름(예: DART 전자공시(금융감독원), 국민연금 가입 사업장 내역(국민연금공단), "
             "고용24 청년친화강소기업(고용노동부))을 그대로 쓰고, 무엇을 가져왔는지는 '카카오뱅크 직원 수·평균 급여'처럼 짧게 적어요.")
