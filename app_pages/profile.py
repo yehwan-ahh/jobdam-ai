@@ -141,10 +141,13 @@ if submitted:  # 저장하면 결과지로 바로 내려가기(결과지가 그�
     S.pf_saves = S.get("pf_saves", 0) + 1  # 저장할 때마다 새로 실행되도록
     st.html(
         f"<!-- save {S.pf_saves} -->"
-        "<script>(()=>{let n=0;const go=()=>{const ds=[document];try{if(window.parent&&window.parent.document)ds.push(window.parent.document)}catch(e){}"
-        "for(const d of ds){const el=d.querySelector('[class*=\"st-key-pf-report\"]');"
-        "if(el&&el.getBoundingClientRect().height>40){el.scrollIntoView({behavior:'smooth',block:'start'});return;}}"
-        "if(++n<30)setTimeout(go,200);};setTimeout(go,300);})();</script>",
+        "<script>(()=>{let n=0,ok=0,stop=false;"
+        "const ds=[document];try{if(window.parent&&window.parent.document&&window.parent.document!==document)ds.push(window.parent.document)}catch(e){}"
+        "for(const d of ds){['wheel','touchstart','keydown'].forEach(ev=>d.addEventListener(ev,()=>{stop=true},{once:true,passive:true}));}"
+        "const go=()=>{if(stop)return;for(const d of ds){const el=d.querySelector('[class*=\"st-key-pf-report\"]');"
+        "if(el&&el.getBoundingClientRect().height>40){const t=el.getBoundingClientRect().top;"
+        "if(t<-20||t>120){el.scrollIntoView({block:'start'});ok=0}else{ok++}}}"
+        "if(++n<40&&ok<4)setTimeout(go,250);};setTimeout(go,300);})();</script>",
         unsafe_allow_javascript=True,
     )
 ri = profile.effective_riasec(p)
