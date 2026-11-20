@@ -164,8 +164,6 @@ if S.selected_job:
             st.button("다른 직무 보기", icon=":material/arrow_back:", on_click=back_to_explore)
             if st.button("이 직무로 '3년 뒤의 나' 보기", icon=":material/timeline:", type="primary"):
                 st.switch_page("app_pages/future.py")
-            if st.button("이 직무로 로드맵 그리기", icon=":material/route:"):
-                st.switch_page("app_pages/roadmap.py")
 
     st.space("small")
     st.subheader(f"{name} 선배와 대화", anchor=False, help="실명·연락처 같은 개인정보는 적지 말아 주세요.")

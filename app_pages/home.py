@@ -71,7 +71,7 @@ steps = [
      "app_pages/panel.py", "직무 고르러 가기", ":material/groups:"),
     ("3", "3년 뒤의 나", "고른 직무로 취업·대학원·창업 갈림길을 공식 통계로 비교하고, 그 길을 걸은 미래의 나와 대화해요.",
      "app_pages/future.py", "3년 뒤의 나 만나기", ":material/timeline:"),
-    ("4", "커리어 로드맵", "지금부터 3년 뒤까지 해야 할 일·자격·국비 교육을 길 위의 이정표로 정리해요.",
+    ("4", "커리어 로드맵", "3년 뒤의 나와 대화한 길로, 지금부터 3년 뒤까지 할 일·자격·국비 교육을 길 위의 이정표로 그려 줘요.",
      "app_pages/roadmap.py", "로드맵 그리기", ":material/route:"),
 ]
 cols = st.columns(4, gap="small")

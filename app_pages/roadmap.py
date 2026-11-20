@@ -5,34 +5,44 @@ import html
 import streamlit as st
 
 from utils import profile, qnet, roadmap, training
-from utils.demo_data import FUTURES
-from utils.evidence import recommend_candidates
 from utils.style import card
 
 S = st.session_state
 st.title("커리어 로드맵 🛣️", anchor=False)
-st.caption("직무와 갈림길을 고르면 '지금의 나'에서 '3년 뒤의 나'까지 가는 길을 이정표로 그려 줘요. 자격·시험일정·교육과정은 공공데이터, 단계별 행동은 AI 제안이에요.")
+st.caption("직무 간이검사 → 직무 패널 → 3년 뒤의 나를 마치면, 고른 직업과 길로 '지금의 나'에서 '3년 뒤의 나'까지 가는 길을 이정표로 그려 줘요. 자격·시험일정·교육과정은 공공데이터, 단계별 행동은 AI 제안이에요.")
 
-# ── 입력 ─────────────────────────────────────────────────────
-default_job = (S.get("selected_job") or {}).get("name")
-options = list(dict.fromkeys(([default_job] if default_job else []) + recommend_candidates(S.get("my_major"))))
-c1, c2, c3 = st.columns([1.4, 1.2, 1], gap="medium")
-with c1:
-    job = st.selectbox("목표 직무", options, index=0 if default_job else None, placeholder="직무를 고르거나 입력하세요",
-                       accept_new_options=True, key="rm_job")
-with c2:
-    _rec = profile.recommend_path(profile.get()) if profile.get() else []
-    _default = S.get("chosen_path") or (_rec[0]["path"] if _rec else "취업/이직")
-    path = st.segmented_control("갈림길", list(FUTURES.keys()), default=_default, key="rm_path")
-with c3:
-    start = st.selectbox("지금 나는", roadmap.STARTS, index=2, key="rm_start")
+# ── 순서: ① 직무 간이검사 → ② 직무 패널 → ③ 3년 뒤의 나 → ④ 커리어 로드맵 ──────────
+job = (S.get("selected_job") or {}).get("name")
+path = S.get("chosen_path")
 me = profile.get()
-st.caption(f":material/person_search: 직무 간이검사 반영: {profile.summary_line(me)}" if me else
-           ":material/person_search: '직무 간이검사'를 하면 내 강점·채울 능력에 맞춰 단계 목표가 달라져요.")
+if not (job and path):
+    with card("rm-gate", "white"):
+        st.markdown("#### 로드맵은 마지막 단계예요")
+        st.markdown(
+            "**① 직무 간이검사 → ② 직무 패널에서 직업 고르기 → ③ 3년 뒤의 나와 대화**를 마치면, "
+            "그 직업과 길로 3년 커리어 로드맵을 그려 줘요."
+        )
+        steps = [("① 직무 간이검사", me is not None, "app_pages/profile.py"),
+                 ("② 직무 패널에서 직업 고르기", bool(job), "app_pages/panel.py"),
+                 ("③ 3년 뒤의 나와 대화", bool(path), "app_pages/future.py")]
+        for label, done, _ in steps:
+            st.markdown(f"{'✅' if done else '⬜'} {label}")
+        nxt = next((t for _, d, t in steps if not d), None)
+        if nxt and st.button("다음 단계로 가기", type="primary", icon=":material/arrow_forward:"):
+            st.switch_page(nxt)
+    st.stop()
 
-go = st.button("로드맵 그리기", type="primary", icon=":material/route:", disabled=not (job and path))
-if go:
-    with st.spinner("공공데이터를 모아 3년 길을 그리는 중…"):
+# 3년 뒤의 나에서 넘어오면 바로 그려요. '지금 나는'을 바꾸면 다시 그려요.
+c1, c2 = st.columns([3, 1.2], gap="medium", vertical_alignment="bottom")
+with c1:
+    st.markdown(f"**{job} · {path} 길**" + (f"  ·  :gray[직무 간이검사 반영: {profile.summary_line(me)}]" if me else ""))
+with c2:
+    start = st.selectbox("지금 나는", roadmap.STARTS, index=2, key="rm_start")
+want = (job, path, start)
+rm = S.get("roadmap")
+redraw = st.button("다시 그리기", icon=":material/refresh:", key="rm_redraw") if rm else False
+if S.pop("roadmap_request", False) or redraw or not rm or (rm["job"], rm["path"], rm["start"]) != want:
+    with st.spinner(f"공공데이터를 모아 '{path}' 길로 '{job}'까지 가는 3년 길을 그리는 중…"):
         data = roadmap.gather(job, path)
         plan = roadmap.generate(data, start)
     S.roadmap = {"job": job, "path": path, "start": start, "data": data, "plan": plan}

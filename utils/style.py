@@ -109,6 +109,12 @@ h1, h2, h3 {{ letter-spacing: -0.02em; }}
 [class*="st-key-pf_traits"] button[aria-checked="true"] p, [class*="st-key-pf_traits"] button[aria-pressed="true"] p,
 [class*="st-key-pf_test_"] button[aria-checked="true"] p, [class*="st-key-pf_test_"] button[aria-pressed="true"] p {{ color: #FFFFFF !important; }}
 
+/* 사이드바 메뉴의 대분류 제목(잡담 Job談 · 안내): 굵고 크게 */
+[data-testid="stNavSectionHeader"], [data-testid="stNavSectionHeader"] * {{
+    font-size: 1.12rem !important; font-weight: 800 !important; color: #111111 !important; letter-spacing: -0.01em;
+}}
+[data-testid="stNavSectionHeader"] {{ margin-top: 0.4rem; margin-bottom: 0.15rem; }}
+
 /* 메인 로고: 둥근 모서리 */
 [class*="st-key-card-white-intro-hero"] img {{ border-radius: 16px; }}
 

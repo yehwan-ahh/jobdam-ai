@@ -169,7 +169,8 @@ if "future_messages" not in st.session_state:
     st.session_state.future_messages = {}
 history: list[dict[str, str]] = st.session_state.future_messages.setdefault(choice, [])
 
-st.session_state.chosen_path = choice  # 로드맵 등 다른 페이지가 이어서 쓰도록 기억
+if any(m["role"] == "assistant" for m in history):
+    st.session_state.chosen_path = choice  # 이 길로 대화를 나눴다면 로드맵이 이어서 써요
 for m in history:
     with st.chat_message(m["role"], avatar=EMOJI.get(choice) if m["role"] == "assistant" else None):
         st.markdown(m["content"])
@@ -226,13 +227,15 @@ if prompt:
             reply = "지금은 시연 모드라 실제 답변을 만들지 않아요. AI 키가 연결되면 공식 통계를 바탕으로 이야기해 줄게요."
             st.write(reply)
     history.append({"role": "assistant", "content": reply, "sources": used})
+    st.session_state.chosen_path = choice
 
 # ── 다음 단계: 로드맵 ────────────────────────────────────────
 if history:
     st.space("small")
     with st.container(key="cta-roadmap", horizontal=True, vertical_alignment="center"):
         with st.container():
-            st.markdown(f"#### 🛣️ '{choice}' 길로 '{target_job}'까지 가는 3년 로드맵을 그려 볼까요?")
-            st.caption("간이검사 결과와 지금 대화한 길을 바탕으로 할 일·자격·국비 교육을 이정표로 정리해 줘요.")
-        if st.button("커리어 로드맵 그리기", icon=":material/route:", key="cta-roadmap-go"):
+            st.markdown(f"#### 🛣️ 마지막 단계 · '{choice}' 길로 '{target_job}'까지 가는 3년 커리어 로드맵을 만들어요")
+            st.caption("직무 간이검사 결과 + 직무 패널에서 고른 직업 + 지금 대화한 길을 합쳐, 할 일·자격·국비 교육을 이정표로 정리해 줘요.")
+        if st.button("이 길로 커리어 로드맵 만들기", icon=":material/route:", key="cta-roadmap-go"):
+            st.session_state.roadmap_request = True
             st.switch_page("app_pages/roadmap.py")
