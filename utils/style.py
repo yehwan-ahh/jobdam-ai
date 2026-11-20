@@ -80,6 +80,11 @@ h1, h2, h3 {{ letter-spacing: -0.02em; }}
 .st-key-cta-future button {{ background: #FFFFFF !important; border-color: #FFFFFF !important; min-height: 3rem; }}
 .st-key-cta-future button p {{ color: #111111 !important; font-weight: 800; font-size: 1.02rem; }}
 
+.st-key-cta-start {{ background: #111111; border-radius: 20px; padding: 1.1rem 1.4rem; box-shadow: 0 10px 28px rgba(0,0,0,0.18); }}
+.st-key-cta-start p, .st-key-cta-start h4 {{ color: #FFFFFF !important; }}
+.st-key-cta-start [data-testid="stCaptionContainer"] p {{ color: #CFCFCB !important; }}
+.st-key-cta-start button {{ background: #FFFFFF !important; border-color: #FFFFFF !important; min-height: 3rem; padding: 0 1.4rem; }}
+.st-key-cta-start button p {{ color: #111111 !important; font-weight: 800; font-size: 1.02rem; }}
 .st-key-cta-roadmap {{ background: #111111; border-radius: 20px; padding: 1.2rem 1.4rem; box-shadow: 0 10px 28px rgba(0,0,0,0.18); }}
 .st-key-cta-roadmap p, .st-key-cta-roadmap h4 {{ color: #FFFFFF !important; }}
 .st-key-cta-roadmap [data-testid="stCaptionContainer"] p {{ color: #CFCFCB !important; }}

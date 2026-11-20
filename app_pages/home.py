@@ -24,6 +24,23 @@ with card("intro-hero", "white"):
             "검색 결과 목록 대신 대화로, 추측 대신 고용24·KOSIS 같은 공식 숫자로, 한 사람의 말 대신 여러 관점으로 진로를 비교해 봐요."
         )
 
+# ── 시작 버튼: 제목 박스 바로 아래 ────────────────────────────
+st.space("small")
+_done = profile.get() is not None
+with st.container(key="cta-start", horizontal=True, vertical_alignment="center"):
+    with st.container():
+        if _done:
+            st.markdown("#### ✅ 직무 간이검사를 마쳤어요. 이제 직무 패널에서 직업을 골라 보세요")
+            st.caption("간이검사 결과가 선배 대답·직무 적합도·3년 뒤의 나에 이어져요.")
+        else:
+            st.markdown("#### 🧭 1단계 · 직무 간이검사부터 시작해요 (3분)")
+            st.caption("12문항으로 흥미·가치관·강점을 고르면, 이후 모든 대화와 추천이 나에게 맞춰져요.")
+    if _done:
+        if st.button("직무 패널로 가기", icon=":material/arrow_forward:", key="cta-start-go"):
+            st.switch_page("app_pages/panel.py")
+    elif st.button("간이검사 시작하기", icon=":material/arrow_forward:", key="cta-start-go"):
+        st.switch_page("app_pages/profile.py")
+
 # ── 2. 왜 만들었나 ────────────────────────────────────────────
 st.space("small")
 st.subheader("왜 만들었나요?", anchor=False)
