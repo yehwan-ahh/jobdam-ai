@@ -194,7 +194,9 @@ if st.button("적합도 계산하기", icon=":material/calculate:"):
             if t:
                 f = profile.fit(p, t)
                 rows.append({"직무": job, "고용24 직업명": t["name"], "적합도": f["total"], "흥미": f["interest"],
-                             "가치관": f["values"], "강점": f["strength"], "채우면 좋은 능력": ", ".join(f["gaps"])})
+                             "가치관": f["values"], "강점": f["strength"],
+                             "이 직업에서 중요한 능력": ", ".join(n for n, _ in t["abilities"][:3]),
+                             "채우면 좋은 능력": ", ".join(f["gaps"])})
     if rows:
         S.pf_fit_rows = sorted(rows, key=lambda r: -r["적합도"])
     else:

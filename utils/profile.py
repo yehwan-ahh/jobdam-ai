@@ -279,10 +279,21 @@ def render_fit(job: str, key: str) -> None:
         st.metric("흥미", f["interest"], border=True, width="content")
         st.metric("가치관", f["values"], border=True, width="content")
         st.metric("강점", f["strength"], border=True, width="content")
+    mine = set((p.get("abilities") or []) + (p.get("traits") or []))
+    key_abil = t["abilities"][:5]
+    if key_abil:
+        chips = " · ".join(f"{'✓ ' if n in mine else ''}{n} {s}" for n, s in key_abil)
+        st.markdown(f"**이 직업에서 중요한 능력** · {chips}")
+        st.caption("숫자는 고용24가 매긴 이 직업의 능력 중요도(0~100)예요. ✓는 내가 간이검사에서 고른 능력이에요.")
     if f["match"]:
         st.markdown("**잘 맞는 점** · " + ", ".join(f["match"]))
     if f["gaps"]:
         st.markdown("**채우면 좋은 능력** · " + ", ".join(f["gaps"]))
+    if f["strength"] < 50 and key_abil:
+        st.caption(
+            ":material/lightbulb: '강점' 점수는 내가 고른 능력이 이 직업의 중요한 능력과 얼마나 겹치는지로 계산해요. "
+            "위 능력을 키우거나 이미 갖췄다면 간이검사에서 골라 보세요."
+        )
     st.caption(
         f":material/link: 고용24 직업정보 '{t['name']}'의 흥미·가치관·능력 점수와 내 간이검사 결과를 비교한 참고 지표예요. 공식 검사가 아니에요."
     )
