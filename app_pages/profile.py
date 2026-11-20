@@ -3,6 +3,7 @@
 import altair as alt
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 from utils import majors, profile
 from utils.demo_data import PANELS
@@ -139,16 +140,16 @@ st.space("medium")
 report = st.container(key="pf-report")
 if submitted:  # 저장하면 결과지로 바로 내려가기(결과지가 그려질 때까지 최대 6초 다시 시도)
     S.pf_saves = S.get("pf_saves", 0) + 1  # 저장할 때마다 새로 실행되도록
-    st.html(
+    # st.html 스크립트는 이 위치에서 실행되지 않아, 높이 0짜리 iframe에서 부모 화면을 내려요
+    components.html(
         f"<!-- save {S.pf_saves} -->"
-        "<script>(()=>{let n=0,ok=0,stop=false;"
-        "const ds=[document];try{if(window.parent&&window.parent.document&&window.parent.document!==document)ds.push(window.parent.document)}catch(e){}"
-        "for(const d of ds){['wheel','touchstart','keydown'].forEach(ev=>d.addEventListener(ev,()=>{stop=true},{once:true,passive:true}));}"
-        "const go=()=>{if(stop)return;for(const d of ds){const el=d.querySelector('[class*=\"st-key-pf-report\"]');"
+        "<script>(()=>{let n=0,ok=0,stop=false;const d=window.parent.document;"
+        "['wheel','touchstart','keydown'].forEach(ev=>d.addEventListener(ev,()=>{stop=true},{once:true,passive:true}));"
+        "const go=()=>{if(stop)return;const el=d.querySelector('.st-key-pf-report');"
         "if(el&&el.getBoundingClientRect().height>40){const t=el.getBoundingClientRect().top;"
-        "if(t<-20||t>120){el.scrollIntoView({block:'start'});ok=0}else{ok++}}}"
+        "el.style.scrollMarginTop='72px';if(t<30||t>160){el.scrollIntoView({behavior:ok?'auto':'smooth',block:'start'});ok=0}else{ok++}}"
         "if(++n<40&&ok<4)setTimeout(go,250);};setTimeout(go,300);})();</script>",
-        unsafe_allow_javascript=True,
+        height=0,
     )
 ri = profile.effective_riasec(p)
 top = profile.top_codes(ri, 2)
