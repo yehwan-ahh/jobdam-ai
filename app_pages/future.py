@@ -202,9 +202,11 @@ if prompt:
                 f"{', '.join(pii)}처럼 보이는 정보가 있어서 AI에 보내지 않았어요. 그 부분을 빼고 다시 물어봐 주세요.",
                 icon=":material/lock:",
             )
-        st.stop()
+        prompt = None  # 보내지 않았어요. 아래 로드맵 버튼은 그대로 보여요.
 
+if prompt:
     history.append({"role": "user", "content": prompt})
+    reply = None
     with st.chat_message("assistant", avatar=EMOJI.get(choice)):
         if llm.is_enabled():
             with st.spinner("3년 뒤의 내가 생각을 정리하고 있어요"):
@@ -213,29 +215,31 @@ if prompt:
                 result = llm.generate(future_system(choice, evidence, target_job, profile.prompt_block(target_job)), clean)
             if not result.text:
                 st.warning(result.error or "답변을 만들지 못했어요.", icon=":material/error:")
+                st.caption(":material/route: 답을 못 받아도 아래 '이 길로 커리어 로드맵 만들기'로 넘어갈 수 있어요. 공공데이터로 기본 로드맵을 그려 줘요.")
                 history.pop()
-                st.stop()
-            reply = polish(result.text)
-            st.markdown(reply)
-            if used:
-                show_sources(used)
             else:
-                st.caption(":material/info: KOSIS 연결 전이라 공식 통계 없이 나눈 일반적인 이야기예요.")
-            st.caption(f"AI 답변 · {llm.provider_label()} · 개인의 상황에 따라 결과는 달라질 수 있어요.")
+                reply = polish(result.text)
+                st.markdown(reply)
+                if used:
+                    show_sources(used)
+                else:
+                    st.caption(":material/info: KOSIS 연결 전이라 공식 통계 없이 나눈 일반적인 이야기예요.")
+                st.caption(f"AI 답변 · {llm.provider_label()} · 개인의 상황에 따라 결과는 달라질 수 있어요.")
         else:
             used = []
             reply = "지금은 시연 모드라 실제 답변을 만들지 않아요. AI 키가 연결되면 공식 통계를 바탕으로 이야기해 줄게요."
             st.write(reply)
-    history.append({"role": "assistant", "content": reply, "sources": used})
-    st.session_state.chosen_path = choice
+    if reply is not None:
+        history.append({"role": "assistant", "content": reply, "sources": used})
+        st.session_state.chosen_path = choice
 
-# ── 다음 단계: 로드맵 ────────────────────────────────────────
-if history:
-    st.space("small")
-    with st.container(key="cta-roadmap", horizontal=True, vertical_alignment="center"):
-        with st.container():
-            st.markdown(f"#### 🛣️ 마지막 단계 · '{choice}' 길로 '{target_job}'까지 가는 3년 커리어 로드맵을 만들어요")
-            st.caption("직무 간이검사 결과 + 직무 패널에서 고른 직업 + 지금 대화한 길을 합쳐, 할 일·자격·국비 교육을 이정표로 정리해 줘요.")
-        if st.button("이 길로 커리어 로드맵 만들기", icon=":material/route:", key="cta-roadmap-go"):
-            st.session_state.roadmap_request = True
-            st.switch_page("app_pages/roadmap.py")
+# ── 다음 단계: 로드맵 (대화 전에도 항상 보여요) ─────────────────
+st.space("small")
+with st.container(key="cta-roadmap", horizontal=True, vertical_alignment="center"):
+    with st.container():
+        st.markdown(f"#### 🛣️ 마지막 단계 · '{choice}' 길로 '{target_job}'까지 가는 3년 커리어 로드맵을 만들어요")
+        st.caption("직무 간이검사 결과 + 직무 패널에서 고른 직업 + 지금 고른 길을 합쳐, 할 일·자격·국비 교육을 이정표로 정리해 줘요. 3년 뒤의 나와 먼저 대화해 보면 길을 고르는 데 도움이 돼요.")
+    if st.button("이 길로 커리어 로드맵 만들기", icon=":material/route:", key="cta-roadmap-go", type="primary"):
+        st.session_state.chosen_path = choice
+        st.session_state.roadmap_request = True
+        st.switch_page("app_pages/roadmap.py")

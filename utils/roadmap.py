@@ -85,17 +85,49 @@ def _title(raw, i: int) -> str:
     return t
 
 
-def generate(d: dict, start: str) -> dict:
-    """AI 로드맵. 실패하면 기본 로드맵."""
-    from utils.prompts import roadmap_system
+def _texts(v) -> list[str]:
+    """AI가 목록 대신 문장 하나, 이름 대신 묶음({'name': ...})으로 줘도 글자 목록으로 맞춥니다."""
+    if v is None:
+        return []
+    if not isinstance(v, list):
+        v = [v]
+    out = []
+    for x in v:
+        if isinstance(x, dict):
+            x = next((x[k] for k in ("name", "title", "자격", "과정", "text") if isinstance(x.get(k), str)),
+                     next((y for y in x.values() if isinstance(y, str)), ""))
+        t = str(x).strip() if isinstance(x, (str, int, float)) else ""
+        if t:
+            out.append(t)
+    return out
 
+
+def _fallback(d: dict, note: str) -> dict:
+    plan = baseline(d)
+    plan["note"] = note
+    return plan
+
+
+def generate(d: dict, start: str) -> dict:
+    """AI 로드맵. 실패하거나 형식이 이상하면 기본 로드맵(이유를 note에)."""
     if not llm.is_enabled():
         return baseline(d)
+    try:
+        return _generate_ai(d, start)
+    except Exception:  # AI 답 형식이 예상과 달라도 화면이 멈추지 않게
+        return _fallback(d, "AI 답의 형식이 예상과 달라서 공공데이터로 만든 기본 로드맵을 보여 줘요.")
+
+
+def _generate_ai(d: dict, start: str) -> dict:
+    from utils.prompts import roadmap_system
+
     system = roadmap_system(d["job"], d["path"], start, PATH_HINT.get(d["path"], ""), evidence_text(d), profile.prompt_block(d["job"]))
-    data, _ = llm.generate_json(system, [{"role": "user", "content": f"{start}인 내가 '{d['path']}' 길로 '{d['job']}'에 닿는 3년 로드맵을 그려 줘."}])
-    stages = (data or {}).get("stages") if isinstance(data, dict) else None
+    data, err = llm.generate_json(system, [{"role": "user", "content": f"{start}인 내가 '{d['path']}' 길로 '{d['job']}'에 닿는 3년 로드맵을 그려 줘."}])
+    if err:
+        return _fallback(d, f"{err} 그래서 공공데이터로 만든 기본 로드맵을 보여 줘요.")
+    stages = data.get("stages") if isinstance(data, dict) else None
     if not isinstance(stages, list) or len(stages) < 3:
-        return baseline(d)
+        return _fallback(d, "AI가 로드맵을 다 만들지 못해서 공공데이터로 만든 기본 로드맵을 보여 줘요.")
     allowed_certs, allowed_courses = set(d["certs"]), {c["title"] for c in d["courses"]}
     clean = []
     for i, s in enumerate(stages[:4]):
@@ -104,14 +136,14 @@ def generate(d: dict, start: str) -> dict:
         clean.append({
             "period": STAGES[min(i, 3)],
             "title": _title(s.get("title"), i),
-            "goals": [str(x) for x in (s.get("goals") or [])][:3],
-            "actions": [str(x) for x in (s.get("actions") or [])][:3],
+            "goals": _texts(s.get("goals"))[:3],
+            "actions": _texts(s.get("actions"))[:3],
             # 자격·과정은 실제 데이터에 있는 것만 남깁니다(지어낸 이름 제거)
-            "certs": [c for c in (s.get("certs") or []) if c in allowed_certs][:2],
-            "courses": [c for c in (s.get("courses") or []) if c in allowed_courses][:1],
+            "certs": [c for c in _texts(s.get("certs")) if c in allowed_certs][:2],
+            "courses": [c for c in _texts(s.get("courses")) if c in allowed_courses][:1],
         })
     if len(clean) < 3:
-        return baseline(d)
+        return _fallback(d, "AI가 로드맵을 다 만들지 못해서 공공데이터로 만든 기본 로드맵을 보여 줘요.")
     seen: set[str] = set()  # 같은 자격은 처음 나온 단계에만
     for s in clean:
         s["certs"] = [c for c in s["certs"] if not (c in seen or seen.add(c))]
@@ -120,8 +152,8 @@ def generate(d: dict, start: str) -> dict:
         for s, c in zip(clean, d["courses"]):
             s["courses"] = [c["title"]]
     return {
-        "headline": str(data.get("headline", ""))[:60] or baseline(d)["headline"],
+        "headline": (_texts(data.get("headline")) or [baseline(d)["headline"]])[0][:60],
         "stages": clean,
-        "checkpoint": str(data.get("checkpoint", ""))[:80] or baseline(d)["checkpoint"],
+        "checkpoint": (_texts(data.get("checkpoint")) or [baseline(d)["checkpoint"]])[0][:80],
         "ai": True,
     }
