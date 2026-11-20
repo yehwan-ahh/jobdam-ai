@@ -127,7 +127,8 @@ if submitted:
         "answers": answers, "riasec": profile.riasec_scores(answers), "values": values,
         "abilities": abilities, "traits": traits, "likes": likes.strip(), "test": test,
     })
-    st.toast("프로필을 저장했어요", icon=":material/check:")
+    st.toast("결과지가 나왔어요! 아래로 이동해요", icon=":material/check:")
+    st.success("**결과지가 아래에 나왔어요 ↓** 자동으로 내려가요. 안 내려가면 화면을 조금 아래로 내려 주세요.", icon=":material/arrow_downward:")
 
 p = profile.get()
 if not p:
@@ -136,10 +137,14 @@ if not p:
 # ── 결과 ─────────────────────────────────────────────────────
 st.space("medium")
 report = st.container(key="pf-report")
-if submitted:  # 저장하면 결과지로 바로 내려가기
+if submitted:  # 저장하면 결과지로 바로 내려가기(결과지가 그려질 때까지 최대 6초 다시 시도)
+    S.pf_saves = S.get("pf_saves", 0) + 1  # 저장할 때마다 새로 실행되도록
     st.html(
-        "<script>setTimeout(()=>{const d=window.parent.document||document;"
-        "const el=d.querySelector('[class*=\"st-key-pf-report\"]');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},500);</script>",
+        f"<!-- save {S.pf_saves} -->"
+        "<script>(()=>{let n=0;const go=()=>{const ds=[document];try{if(window.parent&&window.parent.document)ds.push(window.parent.document)}catch(e){}"
+        "for(const d of ds){const el=d.querySelector('[class*=\"st-key-pf-report\"]');"
+        "if(el&&el.getBoundingClientRect().height>40){el.scrollIntoView({behavior:'smooth',block:'start'});return;}}"
+        "if(++n<30)setTimeout(go,200);};setTimeout(go,300);})();</script>",
         unsafe_allow_javascript=True,
     )
 ri = profile.effective_riasec(p)
