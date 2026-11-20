@@ -19,17 +19,25 @@ if not (job and path):
     with card("rm-gate", "white"):
         st.markdown("#### 로드맵은 마지막 단계예요")
         st.markdown(
-            "**① 직무 간이검사 → ② 직무 패널에서 직업 고르기 → ③ 3년 뒤의 나와 대화**를 마치면, "
+            "**① 직무 간이검사 → ② 직무 패널에서 직업 고르기 → ③ 3년 뒤의 나에서 길 고르기**를 마치면, "
             "그 직업과 길로 3년 커리어 로드맵을 그려 줘요."
         )
         steps = [("① 직무 간이검사", me is not None, "app_pages/profile.py"),
                  ("② 직무 패널에서 직업 고르기", bool(job), "app_pages/panel.py"),
-                 ("③ 3년 뒤의 나와 대화", bool(path), "app_pages/future.py")]
+                 ("③ 3년 뒤의 나에서 길 고르기", bool(path), "app_pages/future.py")]
         for label, done, _ in steps:
             st.markdown(f"{'✅' if done else '⬜'} {label}")
-        nxt = next((t for _, d, t in steps if not d), None)
-        if nxt and st.button("다음 단계로 가기", type="primary", icon=":material/arrow_forward:"):
-            st.switch_page(nxt)
+    nxt = next(((label, t) for label, d, t in steps if not d), None)
+    if nxt:  # 아직 안 한 단계를 검은 띠로 크게 안내
+        st.space("small")
+        with st.container(key="cta-rmgate", horizontal=True, vertical_alignment="center"):
+            with st.container():
+                st.markdown(f"#### 👉 다음 할 일 · {nxt[0]}")
+                st.caption("이 단계를 마치면 로드맵에 한 걸음 더 가까워져요.")
+            go_label = {"app_pages/profile.py": "직무 간이검사 하러 가기", "app_pages/panel.py": "직무 패널에서 직업 고르기",
+                        "app_pages/future.py": "3년 뒤의 나에서 길 고르기"}[nxt[1]]
+            if st.button(go_label, icon=":material/arrow_forward:", key="cta-rmgate-go"):
+                st.switch_page(nxt[1])
     st.stop()
 
 # 3년 뒤의 나에서 넘어오면 바로 그려요. '지금 나는'을 바꾸면 다시 그려요.

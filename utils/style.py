@@ -90,6 +90,11 @@ h1, h2, h3 {{ letter-spacing: -0.02em; }}
 .st-key-cta-roadmap [data-testid="stCaptionContainer"] p {{ color: #CFCFCB !important; }}
 .st-key-cta-roadmap button {{ background: #FFFFFF !important; border-color: #FFFFFF !important; min-height: 3rem; }}
 .st-key-cta-roadmap button p {{ color: #111111 !important; font-weight: 800; }}
+.st-key-cta-rmgate {{ background: #111111; border-radius: 20px; padding: 1.2rem 1.4rem; box-shadow: 0 10px 28px rgba(0,0,0,0.18); }}
+.st-key-cta-rmgate p, .st-key-cta-rmgate h4 {{ color: #FFFFFF !important; }}
+.st-key-cta-rmgate [data-testid="stCaptionContainer"] p {{ color: #CFCFCB !important; }}
+.st-key-cta-rmgate button {{ background: #FFFFFF !important; border-color: #FFFFFF !important; min-height: 3rem; }}
+.st-key-cta-rmgate button p {{ color: #111111 !important; font-weight: 800; }}
 
 /* 휴대폰: 간이검사 다섯 칸을 한 줄에 */
 @media (max-width: 640px) {{
