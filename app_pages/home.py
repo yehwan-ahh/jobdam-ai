@@ -41,26 +41,7 @@ with st.container(key="cta-start", horizontal=True, vertical_alignment="center")
     elif st.button("간이검사 시작하기", icon=":material/arrow_forward:", key="cta-start-go"):
         st.switch_page("app_pages/profile.py")
 
-# ── 2. 왜 만들었나 ────────────────────────────────────────────
-st.space("small")
-st.subheader("왜 만들었나요?", anchor=False)
-st.markdown(
-    "청년은 직무의 현실을 모른 채 첫 직장을 고르고, **1년 반 만에** 떠나요. "
-    "물어볼 현직자는 없고, 커뮤니티 숫자는 믿기 어렵고, 공식 통계는 너무 어려워요."
-)
-c1, c2, c3 = st.columns(3, gap="medium")
-facts = [
-    (c1, "fact-tenure", "1년 6.8개월", "첫 직장 평균 근속기간"),
-    (c2, "fact-quit", "44.4%", "첫 직장을 그만둔 이유 1위: 보수·근로시간 불만족"),
-    (c3, "fact-first", "11.2개월", "졸업 후 첫 취업까지 걸린 시간"),
-]
-for col, key, num, label in facts:
-    with card(key, "white", parent=col):
-        big_number(num)
-        st.caption(label)
-st.caption(":material/link: 출처: 국가데이터처 경제활동인구조사 청년층 부가조사(2026.5)")
-
-# ── 3. 서비스 안내 (진행 순서) ────────────────────────────────
+# ── 2. 서비스 안내 (진행 순서) ────────────────────────────────
 st.space("small")
 st.subheader("이렇게 이용해요", anchor=False)
 done = profile.get() is not None
