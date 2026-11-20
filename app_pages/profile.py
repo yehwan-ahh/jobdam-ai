@@ -39,21 +39,27 @@ with st.form("profile_form", border=False):
     # ── 2. 가치관·강점 ────────────────────────────────────────
     with card("pf-values", "white"):
         st.markdown("#### 2. 일할 때 중요한 것과 나의 강점")
-        values = st.multiselect(
-            "일할 때 가장 중요한 가치 (중요한 순서대로 최대 3개)",
-            profile.VALUES, default=saved.get("values") or [], max_selections=3, key="pf_values",
+        st.markdown("**일할 때 가장 중요한 가치** · 중요한 순서대로 골라 주세요 (2·3순위는 선택)")
+        prev_v = (saved.get("values") or []) + [None, None, None]
+        vcols = st.columns(3, gap="small")
+        picks = []
+        for i, col in enumerate(vcols):
+            with col:
+                picks.append(st.selectbox(
+                    f"{i + 1}순위", profile.VALUES,
+                    index=profile.VALUES.index(prev_v[i]) if prev_v[i] in profile.VALUES else None,
+                    placeholder="가치를 골라 주세요", key=f"pf_value_{i}",
+                ))
+        values = [v for v in dict.fromkeys(p for p in picks if p)]
+        st.space("small")
+        abilities = st.pills(
+            "자신 있는 능력 (최대 5개 · 눌러서 고르고, 다시 누르면 빠져요)", profile.ABILITIES,
+            selection_mode="multi", default=saved.get("abilities") or [], key="pf_abil",
         )
-        c1, c2 = st.columns(2, gap="medium")
-        with c1:
-            abilities = st.multiselect(
-                "자신 있는 능력 (최대 5개)", profile.ABILITIES, default=saved.get("abilities") or [],
-                max_selections=5, key="pf_abil",
-            )
-        with c2:
-            traits = st.multiselect(
-                "나를 잘 설명하는 성격 (최대 3개)", profile.TRAITS, default=saved.get("traits") or [],
-                max_selections=3, key="pf_traits",
-            )
+        traits = st.pills(
+            "나를 잘 설명하는 성격 (최대 3개)", profile.TRAITS,
+            selection_mode="multi", default=saved.get("traits") or [], key="pf_traits",
+        )
         likes = st.text_area(
             "좋아하는 것이나 해 본 경험 (선택)",
             value=saved.get("likes", ""),
@@ -80,14 +86,14 @@ with st.form("profile_form", border=False):
                     placeholder="검사를 골라 주세요", key="pf_test_name",
                 )
             with t2:
-                codes = st.multiselect(
-                    "흥미 유형 상위 (최대 2개)", list(profile.RIASEC), default=old.get("riasec") or [],
-                    format_func=lambda c: profile.RIASEC[c], max_selections=2, key="pf_test_riasec",
+                codes = st.pills(
+                    "흥미 유형 상위 (최대 2개)", list(profile.RIASEC), selection_mode="multi",
+                    default=old.get("riasec") or [], format_func=lambda c: profile.RIASEC[c], key="pf_test_riasec",
                 )
             with t3:
-                tvals = st.multiselect(
-                    "결과의 상위 가치 (최대 3개)", profile.VALUES, default=old.get("values") or [],
-                    max_selections=3, key="pf_test_values",
+                tvals = st.pills(
+                    "결과의 상위 가치 (최대 3개)", profile.VALUES, selection_mode="multi",
+                    default=old.get("values") or [], key="pf_test_values",
                 )
             if name and (codes or tvals):
                 test = {"name": name, "riasec": codes, "values": tvals}
@@ -100,6 +106,19 @@ if submitted:
     if missing:
         st.warning(f"아직 고르지 않은 문항이 있어요: {', '.join(missing)}번. 모든 문항에 답해 주세요.", icon=":material/edit_note:")
         st.stop()
+    over = []
+    if len(abilities or []) > 5:
+        over.append(f"자신 있는 능력은 5개까지예요(지금 {len(abilities)}개)")
+    if len(traits or []) > 3:
+        over.append(f"성격은 3개까지예요(지금 {len(traits)}개)")
+    if test and len(test.get("riasec") or []) > 2:
+        over.append("흥미 유형은 2개까지예요")
+    if test and len(test.get("values") or []) > 3:
+        over.append("결과의 상위 가치는 3개까지예요")
+    if over:
+        st.warning(" · ".join(over) + ". 몇 개를 다시 눌러 빼 주세요.", icon=":material/edit_note:")
+        st.stop()
+    abilities, traits = list(abilities or []), list(traits or [])
     pii = find_personal_info(likes)
     if pii:
         st.warning(f"{', '.join(pii)}처럼 보이는 정보가 있어서 저장하지 않았어요. 그 부분을 빼고 다시 저장해 주세요.", icon=":material/lock:")
