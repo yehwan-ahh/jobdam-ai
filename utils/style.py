@@ -99,6 +99,16 @@ h1, h2, h3 {{ letter-spacing: -0.02em; }}
     .jd-q {{ font-size: 1.02rem; }}
 }}
 
+/* 간이검사 칩(능력·성격·검사 결과): 고른 칩은 검정 바탕 */
+[class*="st-key-pf_abil"] button[aria-checked="true"], [class*="st-key-pf_abil"] button[aria-pressed="true"],
+[class*="st-key-pf_traits"] button[aria-checked="true"], [class*="st-key-pf_traits"] button[aria-pressed="true"],
+[class*="st-key-pf_test_"] button[aria-checked="true"], [class*="st-key-pf_test_"] button[aria-pressed="true"] {{
+    background: #111111 !important; color: #FFFFFF !important; border-color: #111111 !important;
+}}
+[class*="st-key-pf_abil"] button[aria-checked="true"] p, [class*="st-key-pf_abil"] button[aria-pressed="true"] p,
+[class*="st-key-pf_traits"] button[aria-checked="true"] p, [class*="st-key-pf_traits"] button[aria-pressed="true"] p,
+[class*="st-key-pf_test_"] button[aria-checked="true"] p, [class*="st-key-pf_test_"] button[aria-pressed="true"] p {{ color: #FFFFFF !important; }}
+
 /* 메인 로고: 둥근 모서리 */
 [class*="st-key-card-white-intro-hero"] img {{ border-radius: 16px; }}
 
