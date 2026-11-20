@@ -119,16 +119,6 @@ def render_sources(used: list[str], found: list[str]) -> None:
     st.caption(BR.join(["**근거**", *[f":material/link: {line}" for line in lines], tail]))
 
 
-if st.query_params.get("dbg") == "rel":  # 임시 점검(확인 후 삭제)
-    import traceback
-    for _j in ["사회복지사", "회계 사무원"]:
-        try:
-            _f = worknet.search_jobs(_j, limit=1)
-            _r = worknet._get("callOpenApiSvcInfo212D01.do", (("target", "JOBDTL"), ("jobGb", "1"), ("jobCd", _f[0].get("jobCd", "")), ("dtlGb", "1"))) if _f else None
-            st.text(f"{_j} | found={[x.get('jobNm') for x in (_f or [])]} | root={'None' if _r is None else _r.tag} | rel_nodes={len(_r.findall('.//relJobList')) if _r is not None else '-'} | related={worknet.related_jobs(_j)}")
-        except Exception:
-            st.text(traceback.format_exc()[-600:])
-    st.stop()
 st.title("직무 패널 👥", anchor=False)
 if not S.selected_job and not S.panel_explore:
     scroll_to_top()
