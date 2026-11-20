@@ -207,22 +207,27 @@ def generate(system: str, messages: list[dict[str, str]], json_mode: bool = Fals
 
 def render_byok_sidebar() -> None:
     """사이드바의 '내 API 키 쓰기'. 키는 이 세션 메모리에만 있고 저장되지 않습니다."""
-    label, _, _, _, example = _PROVIDERS[provider()]
     with st.sidebar.expander("내 API 키 쓰기", icon=":material/key:"):
-        st.text_input(
-            f"{label} API 키",
-            type="password",
-            key=BYOK_STATE_KEY,
-            placeholder=example,
-            help="브라우저 창을 닫으면 사라지며, 서버에 저장하거나 기록하지 않아요.",
-        )
-        source = key_source()
-        if source == "byok":
-            st.caption(":green[:material/check:] 내 키로 답변해요.")
-        elif source == "team":
-            st.caption(f"팀 키 사용 중 · 남은 질문 {remaining_team_questions()}개")
-        else:
-            st.caption("키가 없어서 시연 모드로 보여 줘요.")
+        render_byok_body()
+
+
+def render_byok_body() -> None:
+    """'내 API 키 쓰기' 입력칸 본문(현재 컨테이너에 그림)."""
+    label, _, _, _, example = _PROVIDERS[provider()]
+    st.text_input(
+        f"{label} API 키",
+        type="password",
+        key=BYOK_STATE_KEY,
+        placeholder=example,
+        help="브라우저 창을 닫으면 사라지며, 서버에 저장하거나 기록하지 않아요.",
+    )
+    source = key_source()
+    if source == "byok":
+        st.caption(":green[:material/check:] 내 키로 답변해요.")
+    elif source == "team":
+        st.caption(f"팀 키 사용 중 · 남은 질문 {remaining_team_questions()}개")
+    else:
+        st.caption("키가 없어서 시연 모드로 보여 줘요.")
 
 
 def _parse_json(text: str) -> dict:

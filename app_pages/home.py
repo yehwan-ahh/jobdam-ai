@@ -2,9 +2,8 @@ from pathlib import Path
 
 import streamlit as st
 
-from utils import majors, profile
-from utils.evidence import recommend_candidates
-from utils.style import big_number, card, hero_emoji
+from utils import profile
+from utils.style import card, hero_emoji
 
 # ── 1. 잡담은 무엇인가 (주제) ─────────────────────────────────
 LOGO = Path(__file__).resolve().parent.parent / "assets" / "logo.png"
@@ -41,7 +40,7 @@ with st.container(key="cta-start", horizontal=True, vertical_alignment="center")
     elif st.button("간이검사 시작하기", icon=":material/arrow_forward:", key="cta-start-go"):
         st.switch_page("app_pages/profile.py")
 
-# ── 2. 서비스 안내 (진행 순서) ────────────────────────────────
+# ── 3. 서비스 안내 (진행 순서) ────────────────────────────────
 st.space("small")
 st.subheader("이렇게 이용해요", anchor=False)
 done = profile.get() is not None
@@ -68,24 +67,3 @@ for col, (num, title, desc, target, cta, icon) in zip(cols, steps):
         primary = (first and not done) or (num == "2" and done)
         if st.button(cta, key=f"home-go-{num}", icon=icon, type="primary" if primary else "secondary", width="stretch"):
             st.switch_page(target)
-
-# ── 4. 한눈에 보는 잡담 ──────────────────────────────────────
-st.space("small")
-s1, s2, s3 = st.columns(3, gap="medium")
-for col, key, label, value, note in [
-    (s1, "stat-jobs", "대화할 수 있는 직무", f"{len(recommend_candidates(None))}개", "공공데이터 직업 목록 + AI 시대 새 직업"),
-    (s2, "stat-majors", "학과별 진출 직업", f"{len(majors.majors())}개 학과", "한국고용정보원 상위진출직업"),
-    (s3, "stat-data", "근거로 쓰는 공공데이터", "4종", "고용24 직업정보·훈련과정, KOSIS, Q-Net"),
-]:
-    with card(key, "white", parent=col):
-        st.markdown(f"**{label}**")
-        big_number(value)
-        st.caption(note)
-
-st.space("small")
-with card("remind", "cream"):
-    st.markdown("**지켜요 🔒**")
-    st.caption(
-        "숫자는 공공데이터만 쓰고 출처를 답변 아래에 보여 줘요. 실명·연락처 같은 개인정보는 받지 않고, "
-        "입력한 내용은 저장하지 않아요. 답변은 진로 탐색을 돕는 참고 자료예요."
-    )
