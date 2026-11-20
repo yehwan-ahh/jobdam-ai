@@ -74,6 +74,10 @@ apply_style()
 
 render_sidebar_status()
 
+from utils import company  # noqa: E402
+
+company.warm()  # 회사 목록(강소기업·DART)을 뒤에서 미리 받아 둬요
+
 with st.sidebar:
     st.space("medium")
     with card("sidebar", "white"):

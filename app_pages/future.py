@@ -2,7 +2,7 @@ import streamlit as st
 
 from utils import compare, kosis, llm, profile
 from utils.demo_data import DEMO_NOTICE, FUTURES
-from utils.evidence import future_evidence, show_sources
+from utils.evidence import company_evidence, future_evidence, show_sources
 from utils.prompts import find_personal_info, future_system, polish
 from utils.style import card, hero_emoji, icon_tile, scroll_to_top
 
@@ -211,6 +211,10 @@ if prompt:
         if llm.is_enabled():
             with st.spinner("3년 뒤의 내가 생각을 정리하고 있어요"):
                 evidence, used = future_evidence(choice, my_major)
+                co_text, co_sources = company_evidence(prompt, target_job)  # 회사를 물으면 공공데이터로 짧게 소개
+                if co_text:
+                    evidence = "\n\n".join(x for x in (evidence, co_text) if x)
+                    used = used + co_sources
                 clean = [{"role": m["role"], "content": m["content"]} for m in history[-10:]]
                 result = llm.generate(future_system(choice, evidence, target_job, profile.prompt_block(target_job)), clean)
             if not result.text:

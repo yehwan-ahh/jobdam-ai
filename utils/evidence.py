@@ -117,7 +117,23 @@ def job_evidence(job: str, question: str = "", major: str | None = None) -> tupl
     if major_line:
         chunks.append(major_line)
         sources.append(majors.SOURCE)
+    co_text, co_sources = company_evidence(question, job)
+    if co_text:
+        chunks.append(co_text)
+        sources += co_sources
     return ("\n\n".join(chunks) or None), sources
+
+
+def company_evidence(question: str, job: str) -> tuple[str | None, list[str]]:
+    """질문에 회사 이야기가 있으면 강소기업·국민연금·DART 근거(없으면 None). 실패해도 채팅은 계속돼요."""
+    if not question:
+        return None, []
+    from utils import company
+
+    try:
+        return company.evidence(question, job)
+    except Exception:
+        return None, []
 
 
 def recommend_candidates(major: str | None = None) -> list[str]:

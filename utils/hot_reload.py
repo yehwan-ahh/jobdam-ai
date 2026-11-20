@@ -24,6 +24,7 @@ ORDER = [
     "utils.training",
     "utils.new_jobs",
     "utils.qnet",
+    "utils.company",
     "utils.llm",
     "utils.compare",
     "utils.evidence",
