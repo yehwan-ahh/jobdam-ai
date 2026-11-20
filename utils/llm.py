@@ -56,7 +56,7 @@ def _call_openai(
 ) -> LLMResult:
     import openai
 
-    client = openai.OpenAI(api_key=api_key, max_retries=2, timeout=60.0)
+    client = openai.OpenAI(api_key=api_key, max_retries=1, timeout=45.0)
     params: dict = {}
     if _is_reasoning_model(model_name):
         # gpt-5·o 계열: temperature 미지원, 생각 토큰까지 포함해 넉넉하게.
@@ -83,6 +83,8 @@ def _call_openai(
         return LLMResult(None, "요청이 많거나 사용 한도에 닿았어요. 조금 뒤에 다시 물어봐 주세요.")
     except openai.APIStatusError as e:
         return LLMResult(None, f"AI 서비스 오류가 났어요 ({e.status_code}). 잠시 뒤 다시 시도해 주세요.")
+    except openai.APITimeoutError:
+        return LLMResult(None, "AI 응답이 평소보다 오래 걸려 멈췄어요. '다시 물어보기'를 눌러 한 번 더 시도해 주세요.")
     except openai.APIConnectionError:
         return LLMResult(None, "AI 서비스에 연결하지 못했어요. 네트워크를 확인해 주세요.")
 
@@ -103,7 +105,7 @@ def _call_anthropic(
     except ImportError:
         return LLMResult(None, "Claude를 쓰려면 requirements.txt에 anthropic 패키지를 추가해야 해요.")
 
-    client = anthropic.Anthropic(api_key=api_key, max_retries=2, timeout=60.0)
+    client = anthropic.Anthropic(api_key=api_key, max_retries=1, timeout=45.0)
     try:
         response = client.beta.messages.create(
             model=model_name,

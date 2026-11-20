@@ -93,6 +93,22 @@ def search_jobs(keyword: str, limit: int = 3) -> list[dict[str, str]] | None:
     return best[:limit]
 
 
+@st.cache_data(ttl=60 * 60 * 24, show_spinner=False)
+def related_jobs(keyword: str, limit: int = 5) -> list[str]:
+    """고용24 직업정보의 '관련 직업' 목록(예: 사회복지사 → 심리상담전문가)."""
+    found = search_jobs(keyword, limit=1)
+    if not found:
+        return []
+    root = _get(
+        "callOpenApiSvcInfo212D01.do",
+        (("target", "JOBDTL"), ("jobGb", "1"), ("jobCd", found[0].get("jobCd", "")), ("dtlGb", "1")),
+    )
+    if root is None:
+        return []
+    names = [(e.text or "").strip() for e in root.findall(".//relJobList/jobNm")]
+    return [n for n in dict.fromkeys(names) if n][:limit]
+
+
 def job_summary(job_cd: str) -> dict[str, str] | None:
     root = _get(
         "callOpenApiSvcInfo212D01.do",

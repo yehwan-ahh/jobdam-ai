@@ -3,7 +3,7 @@ import streamlit as st
 from utils import compare, kosis, llm, profile
 from utils.demo_data import DEMO_NOTICE, FUTURES
 from utils.evidence import future_evidence, show_sources
-from utils.prompts import find_personal_info, future_system
+from utils.prompts import find_personal_info, future_system, polish
 from utils.style import card, hero_emoji, icon_tile, scroll_to_top
 
 st.title("3년 뒤의 나 🔭", anchor=False)
@@ -214,7 +214,7 @@ if prompt:
                 st.warning(result.error or "답변을 만들지 못했어요.", icon=":material/error:")
                 history.pop()
                 st.stop()
-            reply = result.text
+            reply = polish(result.text)
             st.markdown(reply)
             if used:
                 show_sources(used)

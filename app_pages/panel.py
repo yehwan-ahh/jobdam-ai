@@ -5,7 +5,7 @@ import streamlit as st
 from utils import interviews, llm, majors, new_jobs, profile, training, worknet
 from utils.demo_data import DEMO_NOTICE, PANELS
 from utils.evidence import job_evidence, recommend_candidates
-from utils.prompts import answer_mode, find_personal_info, job_system, panel_opinion_system, recommend_system
+from utils.prompts import answer_mode, find_personal_info, job_system, panel_opinion_system, polish, recommend_system
 from utils.style import card, scroll_to_top
 
 # ── 상태 ─────────────────────────────────────────────────────
@@ -27,6 +27,8 @@ def related_jobs(job: str, n: int = 2) -> list[str]:
         same = [j["name"] for j in new_jobs.jobs() if j["category"] == card["category"]]
         near = [j["name"] for j, _ in new_jobs.match(card.get("domains", []), card.get("skills", []))]
         pool += near[:6] + same + [card["related"]]
+    if worknet.is_enabled() and not card:
+        pool += worknet.related_jobs(job)  # 고용24가 정한 관련 직업이 가장 먼저
     pool += [r["name"] for r in S.panel_recs]
     if worknet.is_enabled() and not card:
         pool += [j.get("jobNm", "") for j in (worknet.search_jobs(job, limit=5) or [])]
@@ -103,7 +105,7 @@ def parse_answer(data: dict | None) -> tuple[str, list[str]]:
             used.append(f"{what}: {src}" if what else src)
         elif isinstance(x, str) and x.strip():
             used.append(x.strip())
-    return answer.strip(), used
+    return polish(answer.strip()), used
 
 
 def render_sources(used: list[str], found: list[str]) -> None:
