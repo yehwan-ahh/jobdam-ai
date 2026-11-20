@@ -12,6 +12,7 @@ import sys
 # 의존성이 적은 것부터 (뒤의 모듈이 앞의 모듈을 import)
 ORDER = [
     "utils.secrets",
+    "utils.cache",
     "utils.demo_data",
     "utils.style",
     "utils.prompts",

@@ -13,6 +13,8 @@ from typing import Any
 import requests
 import streamlit as st
 
+from utils.cache import cache_success
+
 from utils.secrets import get_secret
 
 URL = "https://www.work24.go.kr/cm/openApi/call/hr/callOpenApiSvcInfo310L01.do"
@@ -23,7 +25,7 @@ def is_enabled() -> bool:
     return get_secret("WORK24_TRAINING_KEY") is not None
 
 
-@st.cache_data(ttl=60 * 60 * 6, show_spinner=False)
+@cache_success(ttl=60 * 60 * 6)
 def _search(keyword: str, days: int = 120, size: int = 20) -> list[dict[str, Any]] | None:
     key = get_secret("WORK24_TRAINING_KEY")
     if not key:

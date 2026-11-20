@@ -10,6 +10,8 @@ import re
 
 import streamlit as st
 
+from utils.cache import cache_success
+
 from utils import new_jobs, worknet
 from utils.secrets import get_secret
 
@@ -116,7 +118,7 @@ def _parse(text: str | None) -> list[tuple[str, int]]:
     return [(n.strip(), int(s)) for n, s in _PAIR.findall(text) if n.strip()]
 
 
-@st.cache_data(ttl=60 * 60 * 24, show_spinner=False)
+@cache_success(ttl=60 * 60 * 24)
 def job_traits(job: str) -> dict | None:
     """고용24 직업정보의 흥미·가치관·능력·성격 점수. 못 찾으면 None."""
     if not worknet.is_enabled():

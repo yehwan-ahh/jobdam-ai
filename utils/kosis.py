@@ -16,6 +16,8 @@ import pandas as pd
 import requests
 import streamlit as st
 
+from utils.cache import cache_success
+
 from utils.secrets import get_secret
 
 URL = "https://kosis.kr/openapi/Param/statisticsParameterData.do"
@@ -105,7 +107,7 @@ def _get_json(url: str, params: dict[str, str]) -> tuple[Any, str | None]:
     return data, None
 
 
-@st.cache_data(ttl=60 * 60 * 24, show_spinner=False)
+@cache_success(ttl=60 * 60 * 24)
 def _auto_params(
     org_id: str, tbl_id: str, item_keywords: tuple[str, ...] = (), all_level: int = 1
 ) -> tuple[dict[str, str] | None, str | None]:
@@ -140,7 +142,7 @@ def _auto_params(
     return params, None
 
 
-@st.cache_data(ttl=60 * 60 * 24, show_spinner=False)
+@cache_success(ttl=60 * 60 * 24)
 def load(table_key: str, recent_periods: int = 3) -> tuple[pd.DataFrame | None, str | None]:
     """통계표를 (DataFrame, 오류 안내)로. 실패하면 DataFrame은 None (숫자를 지어내지 않습니다)."""
     key = get_secret("KOSIS_API_KEY")
@@ -175,7 +177,7 @@ def load(table_key: str, recent_periods: int = 3) -> tuple[pd.DataFrame | None, 
     return df, None
 
 
-@st.cache_data(ttl=60 * 60 * 24, show_spinner=False)
+@cache_success(ttl=60 * 60 * 24)
 def raw(table_key: str, recent_periods: int = 1) -> tuple[pd.DataFrame | None, str | None]:
     """코드(C1, ITM_ID 등)까지 담은 원자료. 비교 그래프처럼 행을 정확히 골라야 할 때 씁니다."""
     key = get_secret("KOSIS_API_KEY")

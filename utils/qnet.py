@@ -11,6 +11,8 @@ from datetime import date
 import requests
 import streamlit as st
 
+from utils.cache import cache_success
+
 from utils.secrets import get_secret
 
 URL = "http://openapi.q-net.or.kr/api/service/rest/InquiryTestInformationNTQSVC/"
@@ -54,7 +56,7 @@ def kind_of(cert: str) -> str | None:
     return None
 
 
-@st.cache_data(ttl=60 * 60 * 24, show_spinner=False)
+@cache_success(ttl=60 * 60 * 24)
 def schedule(op: str) -> list[dict[str, str]] | None:
     key = get_secret("QNET_API_KEY")
     if not key:

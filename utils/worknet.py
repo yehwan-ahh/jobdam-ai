@@ -13,6 +13,8 @@ import xml.etree.ElementTree as ET
 import requests
 import streamlit as st
 
+from utils.cache import cache_success
+
 from utils.secrets import get_secret
 
 BASE = "https://www.work24.go.kr/cm/openApi/call/wk"
@@ -37,7 +39,7 @@ def is_enabled() -> bool:
     return _key() is not None
 
 
-@st.cache_data(ttl=60 * 60 * 24, show_spinner=False)
+@cache_success(ttl=60 * 60 * 24)
 def _get(path: str, params: tuple[tuple[str, str], ...]) -> ET.Element | None:
     key = _key()
     if not key:
@@ -93,7 +95,6 @@ def search_jobs(keyword: str, limit: int = 3) -> list[dict[str, str]] | None:
     return best[:limit]
 
 
-@st.cache_data(ttl=60 * 60 * 24, show_spinner=False)
 def related_jobs(keyword: str, limit: int = 5) -> list[str]:
     """고용24 직업정보의 '관련 직업' 목록(예: 사회복지사 → 심리상담전문가)."""
     found = search_jobs(keyword, limit=1)
