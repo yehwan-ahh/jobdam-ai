@@ -130,17 +130,8 @@ if submitted:
     })
     st.toast("결과지가 나왔어요! 아래로 이동해요", icon=":material/check:")
     st.success("**결과지가 아래에 나왔어요 ↓** 자동으로 내려가요. 안 내려가면 화면을 조금 아래로 내려 주세요.", icon=":material/arrow_downward:")
-
-p = profile.get()
-if not p:
-    st.stop()
-
-# ── 결과 ─────────────────────────────────────────────────────
-st.space("medium")
-report = st.container(key="pf-report")
-if submitted:  # 저장하면 결과지로 바로 내려가기(결과지가 그려질 때까지 최대 6초 다시 시도)
+    # 결과지로 바로 내려가기: 화면 안(안내 바로 아래)에 높이 0 iframe을 두어야 브라우저가 지연 없이 실행해요
     S.pf_saves = S.get("pf_saves", 0) + 1  # 저장할 때마다 새로 실행되도록
-    # st.html 스크립트는 이 위치에서 실행되지 않아, 높이 0짜리 iframe에서 부모 화면을 내려요
     components.html(
         f"<!-- save {S.pf_saves} -->"
         "<script>(()=>{let n=0,ok=0,stop=false;const d=window.parent.document;"
@@ -151,6 +142,14 @@ if submitted:  # 저장하면 결과지로 바로 내려가기(결과지가 그�
         "if(++n<40&&ok<4)setTimeout(go,250);};setTimeout(go,300);})();</script>",
         height=0,
     )
+
+p = profile.get()
+if not p:
+    st.stop()
+
+# ── 결과 ─────────────────────────────────────────────────────
+st.space("medium")
+report = st.container(key="pf-report")
 ri = profile.effective_riasec(p)
 top = profile.top_codes(ri, 2)
 with report:
