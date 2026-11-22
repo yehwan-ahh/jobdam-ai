@@ -216,7 +216,66 @@ planStatus.className = "roadmap-note";
 planStatus.setAttribute("role","status");
 byId("roadmap-star-heading").parentElement.after(planStatus);
 
-function applyJobtalkPlan(plan) {
+let previousConstellation;
+let constellationFrame;
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+const mobileConstellation = document.createElementNS("http://www.w3.org/2000/svg","svg");
+mobileConstellation.setAttribute("class","jobtalk-mobile-stars");
+mobileConstellation.setAttribute("viewBox","0 0 64 600");
+mobileConstellation.setAttribute("preserveAspectRatio","none");
+mobileConstellation.setAttribute("aria-hidden","true");
+const mobileLine = document.createElementNS(mobileConstellation.namespaceURI,"polyline");
+mobileConstellation.append(mobileLine);
+byId("roadmap-star-points").before(mobileConstellation);
+
+function paintConstellation(heights) {
+  [...byId("roadmap-star-points").children].forEach((point,index) => {
+    point.style.setProperty("--star-y",heights[index]+"%");
+    point.style.setProperty("--star-mobile-x",mobileStarX(heights[index])+"px");
+  });
+  byId("roadmap-star-line").setAttribute("points",heights.map((y,index) => (50+index*100)+","+y).join(" "));
+  mobileLine.setAttribute("points",heights.map((y,index) => mobileStarX(y)+","+(50+index*100)).join(" "));
+}
+
+function mobileStarX(height) {
+  return 20 + height*.39;
+}
+
+function constellationHeights(start,plan) {
+  const seed = Object.keys(roadmapStages).indexOf(start);
+  return [58,41,51,33,45,25].map((height,index) => {
+    const title = plan.stages[index-1]?.title || "";
+    const weight = [...title].reduce((total,letter) => total+letter.codePointAt(0),0);
+    return height + ((seed*(index+2) + weight)%21)-10;
+  });
+}
+
+function moveConstellation(route,start,plan) {
+  cancelAnimationFrame(constellationFrame);
+  const target = constellationHeights(start,plan);
+  const base = [...byId("roadmap-star-points").children].map(point => parseFloat(point.style.getPropertyValue("--star-y")));
+  const from = previousConstellation?.route === route ? previousConstellation.heights : base;
+  const update = heights => {
+    previousConstellation = {route,heights};
+    paintConstellation(heights);
+  };
+  if (reducedMotion.matches || target.every((height,index) => height === from[index])) {
+    update(target);
+    return;
+  }
+  const begin = performance.now();
+  update(from);
+  const tick = now => {
+    const progress = Math.min(1,(now-begin)/650);
+    const eased = progress*progress*(3-2*progress);
+    update(from.map((height,index) => height+(target[index]-height)*eased));
+    if (progress < 1) constellationFrame = requestAnimationFrame(tick);
+  };
+  constellationFrame = requestAnimationFrame(tick);
+}
+
+function applyJobtalkPlan(plan,route,start) {
+  moveConstellation(route,start,plan);
   const cards = byId("milestones").children;
   const stars = byId("roadmap-star-points").children;
   plan.stages.forEach((step,index) => {
@@ -236,9 +295,15 @@ function applyJobtalkPlan(plan) {
 }
 
 renderRoadmap = function() {
+  cancelAnimationFrame(constellationFrame);
   buildRoadmapDemo();
   const start = byId("stage").value;
-  if (!state.role || !state.path || !start) {
+  if (!state.role || !state.path) return;
+  const route = JSON.stringify([state.role.name,state.path.name]);
+  const defaultHeights = [...byId("roadmap-star-points").children].map(point => parseFloat(point.style.getPropertyValue("--star-y")));
+  paintConstellation(start && previousConstellation?.route === route ? previousConstellation.heights : defaultHeights);
+  if (!start) {
+    previousConstellation = {route,heights:defaultHeights};
     planStatus.textContent = "현재 상황을 선택하면 맞춤 계획을 만들어요.";
     return;
   }
@@ -246,7 +311,7 @@ renderRoadmap = function() {
   const path = state.path.name;
   const key = JSON.stringify([job,path,start]);
   if (personalizedPlans.has(key)) {
-    applyJobtalkPlan(personalizedPlans.get(key));
+    applyJobtalkPlan(personalizedPlans.get(key),route,start);
     return;
   }
   planStatus.textContent = "현재 상황에 맞는 계획을 만드는 중이에요…";
@@ -256,7 +321,7 @@ renderRoadmap = function() {
     plansLoading.delete(key);
     if (plan.stages?.length === 4) personalizedPlans.set(key,plan);
     if (state.role?.name !== job || state.path?.name !== path || byId("stage").value !== start) return;
-    if (personalizedPlans.has(key)) applyJobtalkPlan(plan);
+    if (personalizedPlans.has(key)) applyJobtalkPlan(plan,route,start);
     else planStatus.textContent = "맞춤 계획을 불러오지 못했어요. 기본 계획을 표시해요.";
   });
 };

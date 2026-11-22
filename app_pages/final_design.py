@@ -21,6 +21,14 @@ body:has([data-view=explore]:not([hidden]) #explore-dock:not([hidden]), [data-vi
 #chat-log .bubble,#future-chat-log .bubble{white-space:pre-wrap}
 #chat-quick,#future-questions,#future-headline,#future-story,.future-reflections,#path-check,.mentor-chat-note{display:none!important}
 #explore-guide .chat-mode small,#explore-chat .explore-section-head p{display:none}
+.roadmap-star-track svg.jobtalk-mobile-stars{display:none}
+@media(max-width:640px){
+  .roadmap-star-track svg.jobtalk-mobile-stars{display:block;width:64px}
+  .roadmap-star-track ol{grid-auto-rows:1fr}
+  .roadmap-star-track ol::before{display:none}
+  .roadmap-star-node{display:grid;grid-template-columns:minmax(0,1fr);padding-left:64px;height:100%;min-height:48px}
+  .roadmap-star-node>span:first-child{position:absolute;left:calc(var(--star-mobile-x,32px) - 22px);top:calc(50% - 22px)}
+}
 </style>
 """
 EDITOR_HOST = "\n  const host = document.createElement('aside');"
