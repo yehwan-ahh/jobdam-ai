@@ -19,7 +19,8 @@ if "visited" not in st.session_state:
     st.session_state.visited = set()
 
 PAGES = {
-    "home": st.Page("app_pages/home.py", title="시작", icon=":material/home:", default=True),
+    "final": st.Page("app_pages/final_design.py", title="잡담 최종 디자인", default=True),
+    "home": st.Page("app_pages/home.py", title="시작", icon=":material/home:"),
     "profile": st.Page("app_pages/profile.py", title="현재의 나", icon=":material/person_search:"),
     "panel": st.Page("app_pages/panel.py", title="직무 탐색", icon=":material/groups:"),
     "future": st.Page("app_pages/future.py", title="3년 뒤의 나", icon=":material/timeline:"),
@@ -29,6 +30,11 @@ PAGES = {
 }
 # 메뉴는 아래에서 직접 그려요(위쪽 4단계 진행 메뉴). 기본 메뉴는 숨김.
 page = st.navigation(list(PAGES.values()), position="hidden")
+
+if page is PAGES["final"]:
+    page.run()
+    hot_reload.remember()
+    st.stop()
 
 st.session_state.visited.add(page.url_path or "home")
 apply_style()
@@ -55,6 +61,7 @@ with st.container(key="topbar", horizontal=True, vertical_alignment="center"):
                 st.page_link(PAGES[k], label=PAGES[k].title)
     with st.container(key="nav-more", width="content"):
         with st.popover("", icon=":material/more_horiz:", help="연결 상태 · 내 API 키 · 안내"):
+            st.page_link(PAGES["final"], label="최종 디자인", icon=":material/auto_awesome:")
             st.page_link(PAGES["data"], label="데이터와 원칙", icon=":material/verified:")
             st.page_link(PAGES["about"], label="프로젝트 소개", icon=":material/info:")
             st.divider()
