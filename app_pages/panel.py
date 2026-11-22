@@ -119,19 +119,15 @@ def render_sources(used: list[str], found: list[str]) -> None:
     st.caption(BR.join(["**근거**", *[f":material/link: {line}" for line in lines], tail]))
 
 
-st.title("직무 패널 👥", anchor=False)
-if not S.selected_job and not S.panel_explore:
-    scroll_to_top()
-if not S.selected_job:
-    st.markdown("#### 🎤 반가워요! 요즘 어떤 진로 고민이 있나요?")
-    st.markdown(
-        "궁금한 직무를 고르면 그 직무 현직 선배와 바로 이야기할 수 있어요. "
-        "학과로 찾거나, 직접 고르거나, 잘 모르겠다면 아래에서 패널에게 고민을 말해 보세요."
-    )
 step = 2 if S.selected_job else 1
-with st.container(horizontal=True):
-    for n, label in ((1, "직무 고르기"), (2, "직무 선배와 대화")):
-        st.badge(f"{n}. {label}", color="blue" if n == step else "gray", icon=":material/check:" if n < step else None)
+st.html('<div class="jd-stage">' + "".join(
+    f'<span class="{"on" if n == step else ("done" if n < step else "")}">{label}</span>'
+    for n, label in ((1, "직무 선택"), (2, "AI 선배와의 대화"))) + "</div>")
+if not S.selected_job:
+    st.title("직무 선택", anchor=False)
+    st.caption("관심 직무를 담아 비교하고, 대화할 AI 선배를 골라 보세요.")
+    if not S.panel_explore:
+        scroll_to_top()
 
 if not llm.is_enabled():
     st.info(DEMO_NOTICE, title="시연 모드", icon=":material/science:")
@@ -308,108 +304,181 @@ if S.selected_job:
     st.stop()
 
 # ════════════════════════════════════════════════════════════
-# ① 직무 고르기: 옵션 1(내 학과) · 옵션 2(직접) · 보조(패널에게 이야기)
+# ① 직무 선택: 4가지 방법(내 결과로 추천 · 학과로 찾기 · 직접 고르기 · 아직 모르겠어요) → 담기 → 비교 → AI 선배
 # ════════════════════════════════════════════════════════════
-st.space("small")
-opt1, opt2 = st.columns(2, gap="medium")
+METHODS = [
+    ("rec", "내 결과로 추천", "간이검사 결과로 추천받기"),
+    ("major", "학과로 찾기", "학과별 진출 직무 보기"),
+    ("direct", "직접 고르기", "직무명 검색 · AI 시대 새 직업"),
+    ("guide", "아직 모르겠어요", "AI 직무 가이드에게 묻기"),
+]
+S.setdefault("picked", [])  # 담은 직무 [{name, why, basis}]
+S.setdefault("method", "rec" if profile.get() else "direct")
 
-# ── 옵션 1: 내 학과로 찾기 ───────────────────────────────────
-with card("opt-major", "white", parent=opt1):
-    option_header(1, "내 학과로 찾기", "학과를 고르면 졸업자가 많이 가는 직업을 보여 줘요.")
+
+def set_method(k: str) -> None:
+    S.method = k
+
+
+def toggle_pick(job: dict) -> None:
+    names = [j["name"] for j in S.picked]
+    if job["name"] in names:
+        S.picked = [j for j in S.picked if j["name"] != job["name"]]
+    elif len(S.picked) < 5:
+        S.picked = S.picked + [job]
+
+
+def job_rows(jobs: list[dict], key: str, fits: dict | None = None) -> None:
+    """직무 목록: 이름·한 줄 설명 | 적합도 | ＋담기"""
+    picked = {j["name"] for j in S.picked}
+    for i, job in enumerate(jobs):
+        with st.container(key=f"jobrow-{key}-{i}", horizontal=True, vertical_alignment="center"):
+            with st.container():
+                st.markdown(f"**{job['name']}**")
+                if job.get("why"):
+                    st.caption(job["why"])
+            if fits is not None:
+                f = fits.get(job["name"])
+                st.markdown(f"참고 적합도 **{f}점**" if f is not None else ":gray[적합도 정보 없음]", width="content")
+            on = job["name"] in picked
+            st.button("담음" if on else "담기", key=f"pick-{key}-{i}", icon=":material/check:" if on else ":material/add:",
+                      type="secondary", on_click=toggle_pick, args=(job,), width="content")
+
+
+def fit_of(name: str) -> int | None:
+    me = profile.get()
+    t = profile.job_traits(name) if me else None
+    return profile.fit(me, t)["total"] if t else None
+
+
+st.markdown("#### 직무를 고르는 4가지 방법")
+mcols = st.columns(4, gap="small")
+for col, (k, title, desc) in zip(mcols, METHODS):
+    with col:
+        with st.container(key=f"method-{k}-{'on' if S.method == k else 'off'}"):
+            st.button(f"**{title}**", key=f"m-{k}", width="stretch", on_click=set_method, args=(k,),
+                      icon=":material/chevron_right:", icon_position="right", help=desc)
+            st.caption(desc)
+
+st.space("small")
+method = S.method
+
+if method == "rec":
+    me = profile.get()
+    st.markdown("#### 검사 결과와 잘 맞는 직무")
+    if not me:
+        st.info("간이검사를 하면 나와 맞는 직무를 추천받을 수 있어요.", icon=":material/person_search:")
+        if st.button("간이검사 시작", icon=":material/arrow_forward:", type="primary", key="rec-start"):
+            st.switch_page("app_pages/profile.py")
+    else:
+        st.caption("내 흥미·가치·강점을 고용24 직업정보의 직업별 점수와 비교한 참고 적합도예요.")
+        pool: list[str] = []
+        if S.my_major:
+            pool += majors.top_jobs(S.my_major)
+        for personas in PANELS.values():
+            pool += [x["role"] for x in personas]
+        pool = list(dict.fromkeys(pool))[:14]
+        sig = (tuple(me.get("answers") or []), tuple(me.get("values") or []), tuple(me.get("abilities") or []), tuple(pool))
+        if S.get("rec_sig") != sig:
+            with st.spinner("고용24 직업정보와 내 결과를 비교하는 중…"):
+                rows = []
+                for name in pool:
+                    f = fit_of(name)
+                    if f is not None:
+                        rows.append((name, f))
+            S.rec_rows, S.rec_sig = sorted(rows, key=lambda r: -r[1]), sig
+        rows = S.get("rec_rows") or []
+        if not rows:
+            st.info("지금은 적합도를 계산하지 못했어요. '직접 고르기'로 직무를 골라 보세요.", icon=":material/info:")
+        shown = rows[: 8 if S.get("rec_more") else 4]
+        job_rows([{"name": n, "why": "검사 결과 반영 · 참고 적합도", "basis": "간이검사 결과 추천"} for n, _ in shown], "rec",
+                 {n: f for n, f in shown})
+        if len(rows) > 4 and not S.get("rec_more"):
+            if st.button("추천 직무 더 보기", key="rec-more"):
+                S.rec_more = True
+                st.rerun()
+        hits = new_jobs.match([], me.get("abilities") or [])[:3]
+        if hits:
+            st.markdown("#### 새로 탐색해 볼 직무")
+            st.caption("AI 시대 새 직업 중 내 강점에 닿는 직무예요.")
+            job_rows([{"name": j["name"], "why": j["one_line"], "basis": "AI 시대 새 직업 카드(잡담 큐레이션)"} for j, _ in hits], "recnew")
+
+elif method == "major":
+    st.markdown("#### 학과로 찾기")
+    st.caption(f":material/link: 자료 · {majors.SOURCE}")
     g1, g2 = st.columns(2)
     group = g1.selectbox("계열", majors.fields(), index=None, placeholder="계열 선택", key="opt1_group")
-    major = g2.selectbox(
-        "학과", majors.majors(group), index=None, placeholder="학과 선택 (검색 가능)", key="opt1_major"
-    )
-    S.my_major = major
-    job1 = None
+    major = g2.selectbox("학과", majors.majors(group), index=None, placeholder="학과 선택 (검색 가능)", key="opt1_major")
     if major:
-        job1 = st.pills(
-            f"{major} 졸업자가 많이 가는 직업",
-            majors.top_jobs(major),
-            key=f"opt1_job_{major}",
-        )
-        st.caption(f":material/link: 출처: {majors.SOURCE}")
-    st.button(
-        "이 직무로 대화하기" if job1 else "직무를 하나 골라 주세요",
-        key="opt1_go",
-        type="primary",
-        width="stretch",
-        icon=":material/forum:",
-        disabled=not job1,
-        on_click=choose,
-        args=({"name": job1 or "", "why": f"{major} 졸업자가 많이 진출하는 직업이에요.", "basis": majors.SOURCE},),
-    )
+        S.my_major = major
+        job_rows([{"name": n, "why": f"{major} 졸업자가 많이 진출하는 직업이에요.", "basis": majors.SOURCE}
+                  for n in majors.top_jobs(major)], "major")
+    else:
+        st.caption("학과를 고르면 졸업자가 많이 가는 직무가 나와요.")
 
-# ── 옵션 2: 직접 고르기 ──────────────────────────────────────
-with card("opt-direct", "white", parent=opt2):
-    option_header(2, "직무 직접 고르기", "궁금한 직무가 있다면 목록에서 고르거나, AI 시대 새 직업에서 골라요.")
-    tab_pub, tab_new = st.tabs(["직업 목록", "🚀 AI 시대 새 직업"])
-    with tab_pub:
-        public_jobs = [n for n in recommend_candidates(S.my_major) if not new_jobs.get(n)]
-        job2 = st.selectbox(
-            "직무 이름",
-            public_jobs,
-            index=None,
-            placeholder="예: 데이터 분석가, UX/UI디자이너",
-            accept_new_options=True,
-            key="opt2_job",
-        )
-        st.button(
-            "이 직무로 대화하기" if job2 else "직무를 골라 주세요",
-            key="opt2_go",
-            type="primary",
-            width="stretch",
-            icon=":material/forum:",
-            disabled=not job2,
-            on_click=choose,
-            args=({"name": job2 or "", "why": "", "basis": "직접 선택"},),
-        )
-    with tab_new:
-        st.caption("FDE·RAG 엔지니어처럼 공공 직업분류에 아직 없는 새 직업이에요. 숫자는 가장 가까운 공공 직업 기준으로 알려 줘요.")
-        with st.expander("융합 커리어 찾기 · 내 전공과 역량으로 추천받기", icon=":material/join:"):
-            f1, f2 = st.columns(2)
-            doms = f1.multiselect("전공·도메인", new_jobs.all_domains(), key="nj_domains", placeholder="예: 반도체")
-            skls = f2.multiselect("역량·관심 기술", new_jobs.all_skills(), key="nj_skills", placeholder="예: Python")
-            if doms or skls:
-                hits = new_jobs.match(doms, skls)[:4]
-                st.markdown("**잘 이어지는 새 직업** · " + (" · ".join(j["name"] for j, _ in hits) if hits else "없음"))
-        cat = st.pills("분야", ["전체"] + new_jobs.categories(), default="전체", key="nj_cat")
-        pool = [j["name"] for j in new_jobs.jobs() if cat in (None, "전체") or j["category"] == cat]
-        if doms or skls:
-            rank = {j["name"]: sc for j, sc in new_jobs.match(doms, skls)}
-            pool.sort(key=lambda n: -rank.get(n, 0))
-        job_new = st.selectbox("새 직업", pool, index=None, placeholder=f"{len(pool)}개 중에서 골라 주세요", key="opt2_new")
-        nj = new_jobs.get(job_new)
-        if nj:
-            st.markdown(f"**{nj['name']}** · {nj['one_line']}")
-            st.markdown(" ".join(f"`{s}`" for s in nj["skills"]))
-            with st.expander("하는 일 · 준비 방법 · 출처"):
-                st.markdown("**하는 일**  \n" + "  \n".join(f"· {d}" for d in nj["duties"]))
-                st.markdown("**준비 방법**  \n" + "  \n".join(f"· {p}" for p in nj["prepare"]))
-                if nj.get("sources"):
-                    st.markdown("**실제 채용·보도 사례**  \n" + "  \n".join(f"· [{x['title']}]({x['url']})" for x in nj["sources"]))
+elif method == "direct":
+    st.markdown("#### 직무 직접 고르기")
+    c1, c2 = st.columns([4, 1.2], vertical_alignment="bottom")
+    q = c1.text_input("직무 검색", placeholder="예: 데이터 분석가, 게임, AI", key="direct_q")
+    only_new = c2.checkbox("AI 시대 새 직업만", key="direct_new")
+    cards = {j["name"]: j for j in new_jobs.jobs()}
+    names = [n for n in recommend_candidates(S.my_major)] if not only_new else list(cards)
+    qn = "".join(ch for ch in (q or "").lower() if ch.isalnum())
+    hits = [n for n in names if not qn or qn in "".join(ch for ch in n.lower() if ch.isalnum())]
+    limit = 20 if S.get("direct_more") else 8
+    rows = [{"name": n, "why": cards[n]["one_line"] if n in cards else "", "basis": "AI 시대 새 직업 카드(잡담 큐레이션)" if n in cards else "직접 선택"}
+            for n in hits[:limit]]
+    if q and q.strip() and q.strip() not in hits:
+        rows.append({"name": q.strip(), "why": "목록에 없는 직무예요. 가장 가까운 공공 직업 정보로 이야기해요.", "basis": "직접 입력"})
+    if rows:
+        job_rows(rows, "direct")
+    else:
+        st.caption("검색 결과가 없어요. 다른 직무 이름으로 찾아보세요.")
+    if len(hits) > limit and st.button("검색 결과 더 보기", key="direct-more"):
+        S.direct_more = True
+        st.rerun()
+
+# ── 담은 직무: 적합도 비교 → AI 선배와의 대화 ───────────────────
+if S.picked:
+    st.space("small")
+    with st.container(key="picked-bar"):
+        st.markdown(f"#### 담은 직무 {len(S.picked)}개 · AI 선배와 대화할 직무를 골라 보세요")
+        if profile.get():
+            with st.expander("담은 직무의 적합도 비교", icon=":material/compare_arrows:"):
+                rows = []
+                with st.spinner("고용24 직업정보와 비교하는 중…"):
+                    for j in S.picked:
+                        me, t = profile.get(), profile.job_traits(j["name"])
+                        if t:
+                            f = profile.fit(me, t)
+                            rows.append({"직무": j["name"], "적합도": f["total"], "흥미": f["interest"], "가치관": f["values"],
+                                         "강점": f["strength"], "이 직업에서 중요한 능력": ", ".join(n for n, _ in t["abilities"][:3])})
+                if rows:
+                    import pandas as pd
+
+                    st.dataframe(pd.DataFrame(rows), hide_index=True, column_config={
+                        "적합도": st.column_config.ProgressColumn("적합도", min_value=0, max_value=100, format="%d점")})
+                    st.caption(":material/link: 고용24 직업정보(한국고용정보원)의 흥미·가치관·능력 점수와 비교한 참고 지표예요.")
                 else:
-                    st.caption("국내 채용 사례는 아직 확인하지 못한 신흥 직무예요.")
-                st.caption(f":material/link: 숫자는 가장 가까운 공공 직업 '{nj['related']}'(고용24) 기준 · 설명은 AI로 정리 후 검토")
-        st.button(
-            "이 직무로 대화하기" if nj else "새 직업을 골라 주세요",
-            key="opt2_new_go",
-            type="primary",
-            width="stretch",
-            icon=":material/forum:",
-            disabled=not nj,
-            on_click=choose,
-            args=({"name": nj["name"], "why": nj["one_line"], "basis": "AI 시대 새 직업 카드(잡담 큐레이션)"} if nj else {},),
-        )
+                    st.caption("비교할 수 있는 공공 직업 정보를 찾지 못했어요.")
+        with st.container(horizontal=True):
+            for i, j in enumerate(S.picked):
+                st.button(f"{j['name']} 선배와 대화", key=f"talk-picked-{i}", icon=":material/forum:", type="primary",
+                          on_click=choose, args=(j,))
+            if st.button("비우기", key="picked-clear", icon=":material/delete:"):
+                S.picked = []
+                st.rerun()
 
-# ── 보조: 잘 모르겠다면 패널에게 이야기 ──────────────────────
-st.space("medium")
-st.subheader("잘 모르겠다면 패널에게 이야기해 보세요", anchor=False)
-st.caption("좋아하는 것, 전공, 고민을 말하면 패널이 살펴볼 만한 직무를 3~4개 추천해요.")
+# ── 아직 모르겠어요: AI 직무 가이드 ─────────────────────────────
+if method != "guide":
+    st.caption(f"답변 모드: {'균형(공공데이터 + AI 일반 지식)' if answer_mode() == 'balanced' else '근거 우선'}")
+    st.stop()
+
+st.markdown("#### AI 직무 가이드")
+st.caption("좋아하는 것, 전공, 고민을 말하면 살펴볼 만한 직무를 3~4개 추천해요. 마음에 드는 직무는 담아서 비교할 수 있어요.")
 
 for msg in S.panel_explore:
-    with st.chat_message(msg["role"], avatar="🎤" if msg["role"] == "assistant" else None):
+    with st.chat_message(msg["role"], avatar="🧭" if msg["role"] == "assistant" else None):
         st.markdown(msg["content"])
 
 examples = [
@@ -421,7 +490,7 @@ picked_example = None
 if not S.panel_explore:
     picked_example = st.pills("이렇게 시작해 보세요", examples, key="panel_examples", label_visibility="collapsed")
 
-prompt = st.chat_input("패널에게 진로 고민을 이야기해 보세요", key="explore_input", submit_mode="disable")
+prompt = st.chat_input("AI 직무 가이드에게 진로 고민을 이야기해 보세요", key="explore_input", submit_mode="disable")
 if picked_example and not prompt:
     prompt = picked_example
 
@@ -431,9 +500,9 @@ if prompt:
     if not blocked_by_pii(prompt):
         S.panel_explore.append({"role": "user", "content": prompt})
         candidates = recommend_candidates(S.my_major)
-        with st.chat_message("assistant", avatar="🎤"):
+        with st.chat_message("assistant", avatar="🧭"):
             if llm.is_enabled():
-                with st.spinner("패널이 어울리는 직무를 고르고 있어요"):
+                with st.spinner("어울리는 직무를 고르고 있어요"):
                     data, err = llm.generate_json(
                         recommend_system(candidates, majors.evidence(S.my_major), profile.prompt_block()), S.panel_explore[-8:]
                     )
@@ -443,11 +512,7 @@ if prompt:
                     st.stop()
                 message = str(data.get("message", "")).strip() or "이야기 잘 들었어요. 이런 직무를 살펴보면 좋겠어요."
                 recs = [
-                    {
-                        "name": str(j.get("name", "")).strip(),
-                        "why": str(j.get("why", "")).strip(),
-                        "basis": str(j.get("basis", "")).strip(),
-                    }
+                    {"name": str(j.get("name", "")).strip(), "why": str(j.get("why", "")).strip(), "basis": str(j.get("basis", "")).strip()}
                     for j in data.get("jobs", [])
                     if isinstance(j, dict) and j.get("name")
                 ][:4]
@@ -461,29 +526,9 @@ if prompt:
             S.panel_recs = recs
         st.rerun()
 
-# ② 패널 추천 직무 카드
 if S.panel_recs:
     st.space("small")
-    st.markdown("#### 패널이 추천한 직무")
-    cols = st.columns(len(S.panel_recs), gap="medium")
-    tones = ["sky", "mint", "peach", "cream"]
-    for i, (col, rec) in enumerate(zip(cols, S.panel_recs)):
-        with card(f"rec-{i}", tones[i % len(tones)], parent=col):
-            st.markdown(f"#### {rec['name']}")
-            if rec.get("why"):
-                st.write(rec["why"])
-            if rec.get("basis"):
-                st.caption(f":material/link: {rec['basis']}")
-            if interviews.is_enabled() and rec["name"] in interviews.jobs():
-                st.badge("현직자 인터뷰 있음", icon=":material/mic:", color="green")
-            st.button(
-                "이 직무로 대화하기",
-                key=f"pick_{i}",
-                icon=":material/forum:",
-                type="primary",
-                width="stretch",
-                on_click=choose,
-                args=(rec,),
-            )
+    st.markdown("#### AI 직무 가이드가 추천한 직무")
+    job_rows(S.panel_recs, "guide")
 
 st.caption(f"답변 모드: {'균형(공공데이터 + AI 일반 지식)' if answer_mode() == 'balanced' else '근거 우선'}")

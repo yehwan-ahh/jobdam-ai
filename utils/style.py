@@ -1,179 +1,241 @@
-"""모노톤(흰색·회색·검정) 카드 스타일.
+"""잡담 디자인: 어두운 별빛 배경 + 라임 포인트 (UX/UI 디자인 시안 반영).
 
-레퍼런스 대시보드처럼 둥글고 그림자가 은은한 카드를 만들기 위해,
-key가 `card-<색>-...`, `tile-<색>-...`인 컨테이너에만 CSS를 적용합니다.
+key가 `card-<색>-...`인 컨테이너는 어두운 패널 카드로, CTA 띠(`cta-*`)는 라임 버튼으로 보여 줍니다.
+색 이름(white/sky/mint/…)은 호출부 호환을 위해 그대로 두고 값만 어두운 단계로 바꿉니다.
 """
 
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
-# 흰색·회색·검정 모노톤. 색 이름(sky/mint/…)은 호출부 호환을 위해 유지하고 값만 회색 단계로 바꿉니다.
+INK, MUTED, LIME, LIME_INK = "#F5F3EA", "#B1AFA3", "#D9F477", "#171717"
+PANEL, PANEL2, RULE, RULE2 = "#121310", "#151612", "#2F3029", "#45473B"
+
 CARD_COLORS = {
-    "white": "#FFFFFF",
-    "sky": "#FFFFFF",
-    "mint": "#FBFBF9",
-    "peach": "#F4F4F1",
-    "cream": "#EDEDEA",
+    "white": PANEL,
+    "sky": PANEL,
+    "mint": "#141611",
+    "peach": "#16150F",
+    "cream": PANEL2,
 }
 TILE_COLORS = {
-    "navy": "#111111",
-    "teal": "#3A3A3A",
-    "peach": "#8C8C8C",
-    "cream": "#D4D4D4",
-    "white": "#FFFFFF",
+    "navy": LIME,
+    "teal": "#5A5C4E",
+    "peach": "#EFCE97",
+    "cream": "#2F3029",
+    "white": PANEL2,
 }
 
 _CARD_CSS = "\n".join(
     f"""[class*="st-key-card-{name}-"] {{
     background: {color};
-    border: 1px solid #E5E5E5;
-    border-radius: 20px;
-    padding: 1.5rem 1.6rem;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 8px 24px rgba(0, 0, 0, 0.04);
+    border: 1px solid {RULE};
+    border-radius: 16px;
+    padding: 1.35rem 1.45rem;
 }}"""
     for name, color in CARD_COLORS.items()
 )
+_CTA = "\n".join(
+    f""".st-key-{k} {{ background: linear-gradient(120deg, #151612, #191C12); border: 1px solid #3B4226; border-left: 4px solid {LIME};
+    border-radius: 16px; padding: 1.15rem 1.35rem; }}
+.st-key-{k} h4 {{ color: {INK} !important; }}
+.st-key-{k} [data-testid="stCaptionContainer"] p {{ color: {MUTED} !important; }}
+.st-key-{k} button {{ background: {LIME} !important; border-color: {LIME} !important; min-height: 2.9rem; padding: 0 1.3rem; box-shadow: 0 2px 10px rgba(217,244,119,0.18); }}
+.st-key-{k} button p, .st-key-{k} button span {{ color: {LIME_INK} !important; font-weight: 760; font-size: 1rem; }}"""
+    for k in ("cta-future", "cta-start", "cta-roadmap", "cta-rmgate")
+)
 _CSS = f"""
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
+html, body, .stApp, button, input, textarea, p, li, label, h1, h2, h3, h4, h5 {{ font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif !important; }}
+p, li, label {{ word-break: keep-all; overflow-wrap: anywhere; }}
+
+/* 별빛 배경 */
+.stApp {{
+    background:
+      radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,.55) 50%, transparent 51%),
+      radial-gradient(1px 1px at 72% 12%, rgba(255,255,255,.45) 50%, transparent 51%),
+      radial-gradient(1.4px 1.4px at 38% 64%, rgba(255,255,255,.35) 50%, transparent 51%),
+      radial-gradient(1px 1px at 88% 46%, rgba(255,255,255,.4) 50%, transparent 51%),
+      radial-gradient(1px 1px at 22% 86%, rgba(255,255,255,.3) 50%, transparent 51%),
+      radial-gradient(1.2px 1.2px at 56% 30%, rgba(217,244,119,.45) 50%, transparent 51%),
+      radial-gradient(1px 1px at 94% 82%, rgba(255,255,255,.35) 50%, transparent 51%),
+      radial-gradient(1px 1px at 6% 52%, rgba(255,255,255,.3) 50%, transparent 51%),
+      radial-gradient(ellipse at 82% -12%, #1b1a2a 0%, transparent 48%),
+      #080808;
+    background-size: 420px 420px, 360px 360px, 520px 520px, 300px 300px, 460px 460px, 640px 640px, 380px 380px, 500px 500px, 100% 100%, auto;
+    background-attachment: fixed;
+}}
+[data-testid="stHeader"] {{ background: transparent; }}
+[data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"], [data-testid="stSidebarCollapseButton"] {{ display: none !important; }}
+.block-container {{ max-width: 1120px; }}
+h1 {{ letter-spacing: -0.045em; }}
+h2, h3, h4 {{ letter-spacing: -0.035em; }}
+[data-testid="stCaptionContainer"] p {{ color: {MUTED}; }}
+
+/* 위쪽 4단계 진행 메뉴 */
+.st-key-topbar {{ border-bottom: 1px solid #2D2E27; padding: 0.1rem 0 0.5rem; margin-bottom: 0.4rem; gap: 0.5rem; }}
+.st-key-topbar [data-testid="stPageLink"] a {{ padding: 0.25rem 0.35rem; border-radius: 6px; background: transparent !important; }}
+.st-key-topbar [data-testid="stPageLink"] a p, .st-key-topbar [data-testid="stPageLink"] a span {{ font-size: 0.86rem; color: {MUTED} !important; font-weight: 560; white-space: nowrap; }}
+.st-key-topbar [data-testid="stPageLink"] a:hover p {{ color: {INK} !important; }}
+.st-key-nav-brand [data-testid="stPageLink"] a p {{ color: #F6F3EA !important; font-weight: 850 !important; font-size: 1rem !important; letter-spacing: -0.06em; }}
+[class*="st-key-navstep-"] [data-testid="stPageLink"] a p::before {{
+    content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 7px; vertical-align: 1px;
+    border: 1px solid #838477; border-radius: 50%;
+}}
+[class*="st-key-navstep-"][class*="-done"] [data-testid="stPageLink"] a p::before {{ background: {LIME}; border-color: {LIME}; }}
+[class*="st-key-navstep-"][class*="-now"] [data-testid="stPageLink"] a p {{ color: #F6F3EA !important; font-weight: 760 !important; }}
+[class*="st-key-navstep-"][class*="-now"] [data-testid="stPageLink"] a p::before {{ border-color: {LIME}; box-shadow: 0 0 6px #d9f47788; }}
+.st-key-nav-steps {{ gap: 0.15rem; }}
+.jd-nav-rule {{ width: clamp(8px, 1.6vw, 22px); height: 1px; background: #45473E; }}
+.st-key-nav-steps [data-testid="stHtml"] {{ display: flex; align-items: center; }}
+.st-key-topbar [data-testid="stPageLink"] [data-testid="stIconMaterial"] {{ display: none; }}
+[data-testid^="stBaseButton-primary"]:disabled {{ opacity: .45; filter: grayscale(.3); }}
+.st-key-nav-more button {{ background: transparent !important; border-color: {RULE2} !important; min-height: 2.1rem; }}
+@media (max-width: 640px) {{
+    .st-key-topbar {{ flex-wrap: wrap !important; row-gap: 0.2rem; }}
+    .st-key-topbar > div:has(> [data-testid="stSpace"]), .st-key-topbar [data-testid="stSpace"] {{ display: none !important; }}
+    .st-key-nav-brand, .st-key-topbar > div:has(.st-key-nav-brand) {{ order: 1; }}
+    .st-key-nav-more, .st-key-topbar > div:has(.st-key-nav-more) {{ order: 2; margin-left: auto; }}
+    .st-key-topbar > div:has(.st-key-nav-steps) {{ order: 3; width: 100% !important; }}
+    .st-key-nav-steps {{ width: 100% !important; order: 3; justify-content: space-between; flex-wrap: nowrap !important; }}
+    [class*="st-key-navstep-"] {{ min-width: 0; }}
+    .st-key-nav-steps > div:has(.jd-nav-rule) {{ display: none !important; }}
+    .st-key-topbar [data-testid="stPageLink"] a p {{ font-size: 0.72rem !important; }}
+    [class*="st-key-navstep-"] [data-testid="stPageLink"] a p::before {{ margin-right: 4px; }}
+    .jd-nav-rule {{ display: none; }}
+}}
+
+/* 시작 화면 */
+.jd-hero {{ text-align: center; padding: 8vh 0 0.6rem; }}
+.jd-hero h1 {{ font-size: clamp(2.1rem, 5vw, 3.3rem); line-height: 1.22; letter-spacing: -0.05em; color: {INK}; margin: 0; font-weight: 760; }}
+.jd-hero p.lede {{ color: {MUTED}; margin: 1rem 0 0; font-size: 1.02rem; }}
+.jd-steps {{ display: flex; justify-content: center; gap: 0; margin: 2.4rem auto 0.4rem; max-width: 560px; }}
+.jd-steps div {{ flex: 1; text-align: center; position: relative; color: {MUTED}; font-size: 0.82rem; }}
+.jd-steps div::before {{ content: ""; display: block; width: 11px; height: 11px; margin: 0 auto 8px; border: 1px solid #838477; border-radius: 50%; background: #080808; position: relative; z-index: 1; }}
+.jd-steps div + div::after {{ content: ""; position: absolute; top: 5px; right: 50%; width: 100%; height: 1px; background: #45473E; }}
+.jd-steps div.on {{ color: {INK}; font-weight: 700; }}
+.jd-steps div.on::before, .jd-steps div.done::before {{ background: {LIME}; border-color: {LIME}; }}
+.jd-steps div.on::before {{ box-shadow: 0 0 10px #d9f47788; }}
+.jd-hero-sub {{ text-align: center; color: {MUTED}; font-size: 0.86rem; margin-top: 0.2rem; }}
+.st-key-hero-start {{ justify-content: center; }}
+.st-key-hero-start button {{ background: {LIME} !important; border-color: {LIME} !important; border-radius: 10px !important; min-height: 3rem; min-width: 8rem; padding: 0 1.6rem; }}
+.st-key-hero-start button p {{ color: #192008 !important; font-weight: 740; font-size: 1.02rem; }}
+
 {_CARD_CSS}
+{_CTA}
 .jd-tile {{
     width: 3.2rem; height: 3.2rem; border-radius: 14px;
     display: flex; align-items: center; justify-content: center;
     font-size: 1.5rem; line-height: 1;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10);
 }}
-.jd-big {{ font-size: 2.6rem; font-weight: 800; color: #111111; line-height: 1.05; letter-spacing: -0.02em; margin: 0.2rem 0 0; }}
+.jd-big {{ font-size: 2.6rem; font-weight: 780; color: {INK}; line-height: 1.05; letter-spacing: -0.03em; margin: 0.2rem 0 0; }}
 .jd-hero-emoji {{ font-size: 6rem; line-height: 1; text-align: center; padding-top: 0.5rem; }}
-h1, h2, h3 {{ letter-spacing: -0.02em; }}
 
-/* 직무 고르기 옵션 카드: 진한 테두리 + 번호 배지 */
-[class*="st-key-card-white-opt-"] {{
-    border: 1.5px solid #111111;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04), 0 12px 32px rgba(0, 0, 0, 0.06);
-}}
+/* 버튼: 기본은 어두운 알약, 주요 버튼은 라임 */
+[data-testid="stBaseButton-primary"] {{ background: {LIME} !important; border-color: {LIME} !important; box-shadow: 0 2px 6px rgba(38,52,19,.15); }}
+[data-testid="stBaseButton-primary"] p, [data-testid="stBaseButton-primary"] span {{ color: {LIME_INK} !important; font-weight: 730; }}
+[data-testid="stBaseButton-primary"]:hover {{ filter: brightness(1.05); }}
+[data-testid="stBaseButton-secondary"], [data-testid="stBaseButton-secondaryFormSubmit"] {{ background: #181A14 !important; border-color: {RULE2} !important; }}
+[data-testid="stBaseButton-secondary"] p {{ color: {INK} !important; font-weight: 650; }}
+[data-testid="stBaseButton-secondary"]:hover {{ border-color: {LIME} !important; }}
+[data-testid="stBaseButton-primaryFormSubmit"] {{ background: {LIME} !important; border-color: {LIME} !important; }}
+[data-testid="stBaseButton-primaryFormSubmit"] p {{ color: {LIME_INK} !important; font-weight: 740; }}
+
+/* 직무 고르기 옵션 카드 */
+[class*="st-key-card-white-opt-"] {{ border: 1px solid {RULE2}; }}
 .jd-opt-head {{ display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.1rem; }}
 .jd-opt-num {{
-    width: 2rem; height: 2rem; border-radius: 999px; background: #111111; color: #FFFFFF;
-    display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1rem;
+    width: 1.9rem; height: 1.9rem; border-radius: 999px; background: {LIME}; color: {LIME_INK};
+    display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.95rem;
 }}
-.jd-opt-title {{ font-size: 1.35rem; font-weight: 800; color: #111111; letter-spacing: -0.02em; }}
-/* 선택된 pill(직업)을 검정 배경·흰 글씨로 */
-[data-testid="stBaseButton-pillsActive"] {{ background: #111111 !important; color: #FFFFFF !important; border-color: #111111 !important; }}
-[data-testid="stBaseButton-pillsActive"] p {{ color: #FFFFFF !important; }}
+.jd-opt-title {{ font-size: 1.25rem; font-weight: 780; color: {INK}; letter-spacing: -0.03em; }}
 
-/* 간이검사 결과지: 큰 흰 박스 + 진한 테두리 */
+/* 선택된 pill·세그먼트: 라임 바탕 */
+[data-testid="stBaseButton-pillsActive"], [data-testid="stBaseButton-segmented_controlActive"] {{
+    background: {LIME} !important; color: {LIME_INK} !important; border-color: {LIME} !important;
+}}
+[data-testid="stBaseButton-pillsActive"] p, [data-testid="stBaseButton-segmented_controlActive"] p {{ color: {LIME_INK} !important; font-weight: 700; }}
+[data-testid="stBaseButton-pills"], [data-testid="stBaseButton-segmented_control"] {{ background: {PANEL2} !important; border-color: {RULE2} !important; }}
+[data-testid="stBaseButton-pills"] p, [data-testid="stBaseButton-segmented_control"] p {{ color: #F5F3EA !important; }}
+
+[data-testid="stButtonGroup"] button[aria-checked="true"], [data-testid="stButtonGroup"] button[aria-pressed="true"] {{ background: {LIME} !important; border-color: {LIME} !important; }}
+[data-testid="stButtonGroup"] button[aria-checked="true"] p, [data-testid="stButtonGroup"] button[aria-pressed="true"] p {{ color: {LIME_INK} !important; font-weight: 700; }}
+
+/* 결과지·종합 박스 */
 [class*="st-key-pf-report"], [class*="st-key-future-synth"] {{
-    background: #FFFFFF; border: 2px solid #111111; border-radius: 24px; padding: 1.8rem 1.9rem;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05), 0 18px 48px rgba(0,0,0,0.08);
+    background: #0F100D; border: 1px solid {RULE2}; border-radius: 22px; padding: 1.7rem 1.8rem;
+    box-shadow: 0 0 0 1px rgba(217,244,119,.06), 0 18px 48px rgba(0,0,0,.35);
 }}
-[class*="st-key-pf-report"] [class*="st-key-card-white-"], [class*="st-key-future-synth"] [class*="st-key-card-white-"] {{ border-color: #E5E5E5; box-shadow: none; background: #FBFBF9; }}
-.jd-report-tag {{ display: inline-block; background: #111111; color: #FFFFFF; font-weight: 700; font-size: 0.9rem;
-    padding: 0.35rem 0.8rem; border-radius: 999px; }}
-[class*="st-key-pf-next"] {{ background: #F4F4F1; border-radius: 16px; padding: 0.9rem 1.1rem; }}
+[class*="st-key-pf-report"] [class*="st-key-card-white-"], [class*="st-key-future-synth"] [class*="st-key-card-white-"] {{ border-color: {RULE}; background: {PANEL2}; }}
+.jd-report-tag {{ display: inline-block; background: {LIME}; color: {LIME_INK}; font-weight: 760; font-size: 0.86rem;
+    padding: 0.3rem 0.8rem; border-radius: 999px; }}
+[class*="st-key-pf-next"] {{ background: {PANEL2}; border: 1px solid {RULE}; border-radius: 14px; padding: 0.9rem 1.1rem; }}
 
-/* 직무 패널: '3년 뒤의 나와 채팅하기' 강조 띠 */
-.st-key-cta-future {{
-    background: #111111; border-radius: 20px; padding: 1.2rem 1.4rem;
-    box-shadow: 0 10px 28px rgba(0,0,0,0.18);
-}}
-.st-key-cta-future p, .st-key-cta-future h4 {{ color: #FFFFFF !important; }}
-.st-key-cta-future [data-testid="stCaptionContainer"] p {{ color: #CFCFCB !important; }}
-.st-key-cta-future button {{ background: #FFFFFF !important; border-color: #FFFFFF !important; min-height: 3rem; }}
-.st-key-cta-future button p {{ color: #111111 !important; font-weight: 800; font-size: 1.02rem; }}
-
-.st-key-cta-start {{ background: #111111; border-radius: 20px; padding: 1.1rem 1.4rem; box-shadow: 0 10px 28px rgba(0,0,0,0.18); }}
-.st-key-cta-start p, .st-key-cta-start h4 {{ color: #FFFFFF !important; }}
-.st-key-cta-start [data-testid="stCaptionContainer"] p {{ color: #CFCFCB !important; }}
-.st-key-cta-start button {{ background: #FFFFFF !important; border-color: #FFFFFF !important; min-height: 3rem; padding: 0 1.4rem; }}
-.st-key-cta-start button p {{ color: #111111 !important; font-weight: 800; font-size: 1.02rem; }}
-.st-key-cta-roadmap {{ background: #111111; border-radius: 20px; padding: 1.2rem 1.4rem; box-shadow: 0 10px 28px rgba(0,0,0,0.18); }}
-.st-key-cta-roadmap p, .st-key-cta-roadmap h4 {{ color: #FFFFFF !important; }}
-.st-key-cta-roadmap [data-testid="stCaptionContainer"] p {{ color: #CFCFCB !important; }}
-.st-key-cta-roadmap button {{ background: #FFFFFF !important; border-color: #FFFFFF !important; min-height: 3rem; }}
-.st-key-cta-roadmap button p {{ color: #111111 !important; font-weight: 800; }}
-.st-key-cta-rmgate {{ background: #111111; border-radius: 20px; padding: 1.2rem 1.4rem; box-shadow: 0 10px 28px rgba(0,0,0,0.18); }}
-.st-key-cta-rmgate p, .st-key-cta-rmgate h4 {{ color: #FFFFFF !important; }}
-.st-key-cta-rmgate [data-testid="stCaptionContainer"] p {{ color: #CFCFCB !important; }}
-.st-key-cta-rmgate button {{ background: #FFFFFF !important; border-color: #FFFFFF !important; min-height: 3rem; }}
-.st-key-cta-rmgate button p {{ color: #111111 !important; font-weight: 800; }}
-
-/* 휴대폰: 간이검사 다섯 칸을 한 줄에 */
-@media (max-width: 640px) {{
-    [class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button {{ min-height: 2.6rem; padding: 0.2rem 0.15rem; }}
-    [class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button p {{ font-size: 0.72rem; letter-spacing: -0.03em; white-space: nowrap; }}
-    [class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] > div {{ flex-wrap: nowrap !important; }}
-    .jd-q {{ font-size: 1.02rem; }}
-}}
-
-/* 간이검사 칩(능력·성격·검사 결과): 고른 칩은 검정 바탕 */
-[class*="st-key-pf_abil"] button[aria-checked="true"], [class*="st-key-pf_abil"] button[aria-pressed="true"],
-[class*="st-key-pf_traits"] button[aria-checked="true"], [class*="st-key-pf_traits"] button[aria-pressed="true"],
-[class*="st-key-pf_test_"] button[aria-checked="true"], [class*="st-key-pf_test_"] button[aria-pressed="true"] {{
-    background: #111111 !important; color: #FFFFFF !important; border-color: #111111 !important;
-}}
-[class*="st-key-pf_abil"] button[aria-checked="true"] p, [class*="st-key-pf_abil"] button[aria-pressed="true"] p,
-[class*="st-key-pf_traits"] button[aria-checked="true"] p, [class*="st-key-pf_traits"] button[aria-pressed="true"] p,
-[class*="st-key-pf_test_"] button[aria-checked="true"] p, [class*="st-key-pf_test_"] button[aria-pressed="true"] p {{ color: #FFFFFF !important; }}
-
-/* 사이드바 메뉴의 대분류 제목(잡담 Job談 · 안내): 굵고 크게 */
-[data-testid="stNavSectionHeader"], [data-testid="stNavSectionHeader"] * {{
-    font-size: 1.12rem !important; font-weight: 800 !important; color: #111111 !important; letter-spacing: -0.01em;
-}}
-[data-testid="stNavSectionHeader"] {{ margin-top: 0.4rem; margin-bottom: 0.15rem; }}
-
-/* 메인 로고: 둥근 모서리 */
-[class*="st-key-card-white-intro-hero"] img {{ border-radius: 16px; }}
-
-/* 직무 간이검사: 검사지처럼 문항은 크게, 다섯 칸은 모두 또렷하게 */
-[class*="st-key-pfq-row-"] {{ padding: 0.85rem 0 0.95rem; border-bottom: 1px solid #EDEDEA; }}
-.jd-q {{ font-size: 1.12rem; font-weight: 700; color: #111111; line-height: 1.5; display: flex; gap: 0.6rem; align-items: baseline; }}
-.jd-q-num {{ flex: none; width: 1.7rem; height: 1.7rem; border-radius: 999px; background: #111111; color: #FFFFFF;
-    font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center; }}
+/* 간이검사 문항: 다섯 칸을 한 줄 막대로 */
+[class*="st-key-pfq-row-"] {{ padding: 0.6rem 0 0.9rem; border-bottom: 1px solid #1F201B; }}
+.jd-q {{ font-size: 1.04rem; font-weight: 700; color: {INK}; line-height: 1.5; display: flex; gap: 0.5rem; align-items: baseline; }}
+.jd-q-num {{ flex: none; color: {MUTED}; font-size: 0.98rem; font-weight: 700; }}
+[class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] > div {{ gap: 0 !important; background: {PANEL2}; border: 1px solid #414337; border-radius: 11px; overflow: hidden; width: 100%; flex-wrap: nowrap !important; }}
 [class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button {{
-    min-height: 2.8rem; font-size: 0.98rem; font-weight: 600; color: #333333; background: #FFFFFF; border-color: #CFCFCB;
+    flex: 1 1 0; min-height: 2.6rem; border: 0 !important; border-radius: 0 !important; background: transparent !important;
+    border-right: 1px solid #2B2C25 !important;
 }}
-[class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button p {{ font-size: 0.98rem; font-weight: 600; }}
+[class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button:last-child {{ border-right: 0 !important; }}
+[class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button p {{ font-size: 0.86rem; font-weight: 560; color: #DAD8CE !important; }}
 [class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button[aria-checked="true"],
-[class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button[aria-pressed="true"] {{
-    background: #111111 !important; color: #FFFFFF !important; border-color: #111111 !important;
-}}
+[class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button[aria-pressed="true"],
+[class*="st-key-pfq-row-"] [data-testid="stBaseButton-segmented_controlActive"] {{ background: {LIME} !important; }}
 [class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button[aria-checked="true"] p,
-[class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button[aria-pressed="true"] p {{ color: #FFFFFF !important; }}
-[class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button:hover {{ border-color: #111111; }}
-[data-testid="stBaseButton-segmented_controlActive"] {{ background: #111111 !important; color: #FFFFFF !important; border-color: #111111 !important; }}
-[data-testid="stBaseButton-segmented_controlActive"] p {{ color: #FFFFFF !important; }}
-
-/* 하단 채팅 입력창: 흰 바탕 + 검정 테두리로 또렷하게 */
-[data-testid="stChatInput"] {{
-    background: #FFFFFF !important;
-    border: 1.5px solid #111111 !important;
-    border-radius: 18px !important;
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.10);
+[class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button[aria-pressed="true"] p,
+[class*="st-key-pfq-row-"] [data-testid="stBaseButton-segmented_controlActive"] p {{ color: {LIME_INK} !important; font-weight: 760; }}
+[class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button:hover {{ background: #1D2016 !important; }}
+@media (max-width: 640px) {{
+    [class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button {{ min-height: 2.5rem; padding: 0.2rem 0.1rem; }}
+    [class*="st-key-pfq-row-"] [data-testid="stButtonGroup"] button p {{ font-size: 0.7rem; letter-spacing: -0.04em; white-space: nowrap; }}
+    .jd-q {{ font-size: 0.98rem; }}
 }}
-[data-testid="stChatInput"] textarea {{ color: #111111 !important; font-size: 1rem; background: #FFFFFF !important; }}
-[data-testid="stChatInput"] > div, [data-testid="stChatInput"] div[data-baseweb] {{ background: #FFFFFF !important; }}
-[data-testid="stChatInput"] textarea::placeholder {{ color: #555555 !important; opacity: 1; }}
-[data-testid="stChatInputSubmitButton"] {{ background: #111111 !important; color: #FFFFFF !important; border-radius: 999px !important; }}
-[data-testid="stChatInputSubmitButton"] svg {{ fill: #FFFFFF !important; color: #FFFFFF !important; }}
-[data-testid="stChatInput"]:focus-within {{ border-color: #000000 !important; box-shadow: 0 0 0 3px rgba(17,17,17,0.12), 0 6px 24px rgba(0,0,0,0.10); }}
-[data-testid="stChatInput"] textarea {{ min-height: 3rem; }}
-[data-testid="stBottom"] > div {{ background: linear-gradient(to top, #FFFFFF 70%, rgba(255,255,255,0)); border-top: 1px solid #E5E5E5; }}
+
+/* 단계 탭·진행 막대 */
+.jd-stage {{ display: flex; gap: 1.2rem; border-bottom: 1px solid {RULE}; margin-bottom: 0.6rem; }}
+.jd-stage span {{ padding: 0.45rem 0; font-size: 0.88rem; color: {MUTED}; font-weight: 600; }}
+.jd-stage span.on {{ color: {INK}; border-bottom: 2px solid {LIME}; font-weight: 760; }}
+.jd-stage span.done {{ color: #CFE58A; }}
+.jd-progress {{ display: flex; justify-content: space-between; color: {MUTED}; font-size: 0.86rem; border-top: 1px solid {RULE}; padding-top: 0.6rem; }}
+.jd-progress b {{ color: {INK}; }}
+.jd-bar {{ height: 3px; background: #24251F; border-radius: 9px; margin: 0.35rem 0 0.4rem; overflow: hidden; }}
+.jd-bar i {{ display: block; height: 100%; background: {LIME}; }}
+
+/* 채팅 입력창 */
+[data-testid="stChatInput"] {{ background: {PANEL2} !important; border: 1px solid {RULE2} !important; border-radius: 16px !important; box-shadow: 0 6px 24px rgba(0,0,0,.35); }}
+[data-testid="stChatInput"] textarea {{ color: {INK} !important; font-size: 1rem; background: transparent !important; min-height: 3rem; }}
+[data-testid="stChatInput"] > div, [data-testid="stChatInput"] div[data-baseweb] {{ background: transparent !important; }}
+[data-testid="stChatInput"] textarea::placeholder {{ color: #8E8C82 !important; opacity: 1; }}
+[data-testid="stChatInputSubmitButton"] {{ background: {LIME} !important; border-radius: 999px !important; }}
+[data-testid="stChatInputSubmitButton"] svg {{ fill: {LIME_INK} !important; color: {LIME_INK} !important; }}
+[data-testid="stChatInput"]:focus-within {{ border-color: {LIME} !important; box-shadow: 0 0 0 3px rgba(217,244,119,.15); }}
+[data-testid="stBottom"] > div {{ background: linear-gradient(to top, #080808 70%, rgba(8,8,8,0)); border-top: 1px solid #1C1D18; }}
 @keyframes jdPulse {{
-    0%, 100% {{ box-shadow: 0 0 0 0 rgba(17, 17, 17, 0.35), 0 6px 24px rgba(0, 0, 0, 0.10); }}
-    50% {{ box-shadow: 0 0 0 8px rgba(17, 17, 17, 0.0), 0 6px 24px rgba(0, 0, 0, 0.10); }}
+    0%, 100% {{ box-shadow: 0 0 0 0 rgba(217,244,119,.35); }}
+    50% {{ box-shadow: 0 0 0 8px rgba(217,244,119,0); }}
 }}
 
-/* 채팅 말풍선: 흰색 카드 박스로 글씨를 또렷하게 */
-[data-testid="stChatMessage"] {{
-    background: #FFFFFF;
-    border: 1px solid #E5E5E5;
-    border-radius: 18px;
-    padding: 1.1rem 1.3rem;
-    margin-bottom: 0.75rem;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 6px 18px rgba(0, 0, 0, 0.04);
-}}
-[data-testid="stChatMessage"] p,
-[data-testid="stChatMessage"] li {{ color: #1A1A1A; line-height: 1.7; }}
-[data-testid="stChatMessage"] [data-testid="stCaptionContainer"] p {{ color: #6B6B6B; line-height: 1.5; }}
+/* 채팅 말풍선 */
+[data-testid="stChatMessage"] {{ background: {PANEL}; border: 1px solid {RULE}; border-radius: 16px; padding: 1rem 1.2rem; margin-bottom: 0.7rem; }}
+[data-testid="stChatMessage"] p, [data-testid="stChatMessage"] li {{ color: {INK}; line-height: 1.72; }}
+[data-testid="stChatMessage"] [data-testid="stCaptionContainer"] p {{ color: {MUTED}; line-height: 1.5; }}
+
+/* 입력칸·펼침·탭 */
+[data-baseweb="select"] > div, [data-baseweb="input"], [data-baseweb="textarea"] {{ background: {PANEL2} !important; border-color: {RULE2} !important; }}
+[data-testid="stExpander"] details {{ background: {PANEL}; border-color: {RULE} !important; border-radius: 14px; }}
+[data-testid="stTabs"] [aria-selected="true"] p {{ color: {INK} !important; font-weight: 760; }}
+[data-testid="stTabs"] [data-baseweb="tab-highlight"] {{ background: {LIME} !important; }}
+[data-testid="stAlert"] {{ border-radius: 12px; }}
+
+/* 담은 직무·방법 카드 */
+[class*="st-key-method-"] button {{ min-height: 4.2rem; justify-content: flex-start; text-align: left; border-radius: 12px !important; }}
+[class*="st-key-method-"][class*="-on"] button {{ border-color: {LIME} !important; background: #1A1E10 !important; }}
+[class*="st-key-method-"][class*="-on"] button p {{ color: #E7F8AD !important; }}
+[class*="st-key-jobrow-"] {{ border-bottom: 1px solid {RULE}; padding: 0.55rem 0; }}
+[class*="st-key-picked-bar"] {{ background: #10120C; border: 1px solid #3B4226; border-radius: 14px; padding: 0.8rem 1rem; }}
 """
 
 

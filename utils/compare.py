@@ -11,7 +11,7 @@ import pandas as pd
 
 from utils import kosis
 
-BLACK, GRAY = "#111111", "#C8C8C8"
+BLACK, GRAY = "#D9F477", "#5A5C4E"
 
 
 @dataclass
@@ -44,8 +44,8 @@ def _bar(df: pd.DataFrame, x: str, y: str, color_field: str, highlight: str, y_t
             tooltip=[x, color_field, alt.Tooltip(f"{y}:Q", format=",.1f")] if color_field != x else [x, alt.Tooltip(f"{y}:Q", format=",.1f")],
         )
         .properties(height=190)
-        .configure_view(strokeWidth=0)
-        .configure_axis(grid=False, labelColor="#555555", titleColor="#555555", domainColor="#D4D4D4")
+        .configure_view(strokeWidth=0).configure(background="transparent")
+        .configure_axis(grid=False, labelColor="#B1AFA3", titleColor="#B1AFA3", domainColor="#45473B")
     )
 
 

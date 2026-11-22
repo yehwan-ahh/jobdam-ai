@@ -1,40 +1,40 @@
-# 잡담 테마: 흰색·회색·검정 모노톤 (미니멀·에디토리얼)
-# base = "light" 고정이라 기기가 다크모드여도 항상 밝은 화면으로 보입니다(글씨가 사라지지 않음).
+# 잡담 테마: 어두운 별빛 배경 + 라임 포인트 (UX/UI 디자인 시안 반영)
+# base = "dark" 고정이라 기기 설정과 상관없이 같은 화면으로 보입니다.
 [theme]
-base = "light"
-primaryColor = "#111111"
-linkColor = "#111111"
-backgroundColor = "#F7F7F5"
-secondaryBackgroundColor = "#EFEFEC"
-textColor = "#1A1A1A"
-borderColor = "#E5E5E5"
-grayColor = "#6B6B6B"
-blueColor = "#111111"
-blueBackgroundColor = "#EDEDEA"
-blueTextColor = "#111111"
-greenColor = "#3A3A3A"
-greenBackgroundColor = "#F0F0ED"
-greenTextColor = "#2B2B2B"
-violetColor = "#3A3A3A"
-orangeColor = "#6B6B6B"
-chartCategoricalColors = ["#111111", "#8C8C8C", "#C4C4C4", "#5A5A5A"]
+base = "dark"
+primaryColor = "#D9F477"
+linkColor = "#D9F477"
+backgroundColor = "#080808"
+secondaryBackgroundColor = "#151612"
+textColor = "#F5F3EA"
+borderColor = "#2F3029"
+grayColor = "#B1AFA3"
+blueColor = "#D9F477"
+blueBackgroundColor = "#232619"
+blueTextColor = "#E7F8AD"
+greenColor = "#D9F477"
+greenBackgroundColor = "#1F2416"
+greenTextColor = "#D9F477"
+violetColor = "#BFC3FF"
+orangeColor = "#EFCE97"
+codeBackgroundColor = "#151612"
+chartCategoricalColors = ["#D9F477", "#5A5C4E", "#EFCE97", "#BFC3FF"]
 
 showWidgetBorder = true
-showSidebarBorder = true
-baseRadius = "14px"
+showSidebarBorder = false
+baseRadius = "12px"
 buttonRadius = "999px"
-font = "'Noto Sans KR':https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap"
+font = "'Pretendard':https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
 baseFontSize = 15
-headingFontWeights = [800, 800, 700, 700, 600, 600]
-headingFontSizes = ["2.6rem", "2rem", "1.5rem", "1.2rem", "1rem", "0.9rem"]
+headingFontWeights = [760, 780, 760, 720, 680, 640]
+headingFontSizes = ["2.6rem", "1.9rem", "1.4rem", "1.15rem", "1rem", "0.9rem"]
 linkUnderline = false
-paddingTop = "2.5rem"
+paddingTop = "1.2rem"
 paddingBottom = "4rem"
 
 [theme.sidebar]
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F4F4F2"
-textColor = "#1A1A1A"
-borderColor = "#E5E5E5"
-primaryColor = "#111111"
-paddingTop = "1.5rem"
+backgroundColor = "#0E0F0C"
+secondaryBackgroundColor = "#151612"
+textColor = "#F5F3EA"
+borderColor = "#2F3029"
+primaryColor = "#D9F477"

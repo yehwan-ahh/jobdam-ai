@@ -1,4 +1,4 @@
-"""직무 간이검사: 간이 흥미 체크 + 가치관·강점 + (선택) 공식 검사 결과 입력 → 직무 적합도."""
+"""현재의 나 · 직무 간이검사: ① 흥미 12문항 → ② 가치와 강점 → ③ 결과 (UX/UI 디자인 시안의 3단계)."""
 
 import altair as alt
 import pandas as pd
@@ -11,37 +11,75 @@ from utils.prompts import find_personal_info
 from utils.style import card
 
 S = st.session_state
-st.title("직무 간이검사 🧭", anchor=False)
-st.caption(
-    "3분이면 끝나요. 고른 성향은 '3년 뒤의 나'와 직무 선배의 대답, 직무 적합도에 쓰여요. "
-    "이 창을 닫으면 사라지고, 서버에 저장하지 않아요."
-)
-
 saved = profile.get() or {}
+if "pf_stage" not in S:
+    S.pf_stage = 3 if saved else 1
+# 단계를 오가도 고른 답이 남도록, 위젯 값과 별도로 보관해요(안 보이는 위젯의 값은 Streamlit이 지워요).
+if "pf_ans" not in S:
+    S.pf_ans = list(saved.get("answers") or [None] * len(profile.ITEMS))
+if "pf_draft" not in S:
+    S.pf_draft = {k: saved.get(k) for k in ("values", "abilities", "traits", "likes", "test")}
 
-with st.form("profile_form", border=False):
-    # ── 1. 간이 흥미 체크 ──────────────────────────────────────
-    with card("pf-interest", "white"):
-        st.markdown("#### 1. 나는 어떤 일에 끌릴까? (간이 흥미 체크 12문항)")
-        st.caption("정답은 없어요. 문항마다 지금의 나와 가장 가까운 칸을 하나씩 골라 주세요. 공식 심리검사가 아닌 참고용 체크예요.")
-        prev = saved.get("answers") or [None] * len(profile.ITEMS)
-        answers = []
-        for i, (_, q) in enumerate(profile.ITEMS):
-            with st.container(key=f"pfq-row-{i}"):
-                st.html(f'<div class="jd-q"><span class="jd-q-num">{i + 1}</span>{q}</div>')
-                answers.append(
-                    st.segmented_control(
-                        f"{i + 1}번 응답", profile.SCALE, default=prev[i], key=f"pf_q{i}",
-                        label_visibility="collapsed", width="stretch",
-                    )
-                )
 
+def go(stage: int) -> None:
+    S.pf_stage = stage
+    S.pf_jump = S.get("pf_jump", 0) + 1
+
+
+def to_top() -> None:
+    """단계가 바뀌면 화면 맨 위로."""
+    components.html(
+        f"<!-- {S.get('pf_jump', 0)} --><script>setTimeout(()=>{{const m=window.parent.document.querySelector('[data-testid=\"stMain\"]');"
+        "if(m)m.scrollTo({top:0});window.parent.scrollTo(0,0);},60)</script>",
+        height=0,
+    )
+
+
+stage = S.pf_stage
+names = ["흥미 12문항", "가치와 강점", "결과"]
+tabs = "".join(
+    f'<span class="{"on" if i + 1 == stage else ("done" if i + 1 < stage else "")}">{n}</span>' for i, n in enumerate(names)
+)
+st.html(f'<div class="jd-stage">{tabs}</div>')
+if S.get("pf_jump"):
+    to_top()
+
+# ── ① 흥미 12문항 ────────────────────────────────────────────
+if stage == 1:
+    st.title("직무 간이검사", anchor=False)
+    st.caption("평소 나와 가까운 답을 골라요. 약 3분이 걸려요. 공식 심리검사가 아닌 참고용 체크이고, 서버에 저장하지 않아요.")
+    n_done = sum(1 for i in range(len(profile.ITEMS)) if S.get(f"pf_q{i}", S.pf_ans[i]))
+    st.html(
+        f'<div class="jd-progress"><span>응답한 문항</span><b>{n_done} / {len(profile.ITEMS)}</b></div>'
+        f'<div class="jd-bar"><i style="width:{n_done / len(profile.ITEMS) * 100:.0f}%"></i></div>'
+    )
+    for i, (_, q) in enumerate(profile.ITEMS):
+        with st.container(key=f"pfq-row-{i}"):
+            st.html(f'<div class="jd-q"><span class="jd-q-num">{i + 1}.</span>{q}</div>')
+            S.pf_ans[i] = st.segmented_control(
+                f"{i + 1}번 응답", profile.SCALE, default=S.pf_ans[i], key=f"pf_q{i}",
+                label_visibility="collapsed", width="stretch",
+            )
     st.space("small")
-    # ── 2. 가치관·강점 ────────────────────────────────────────
+    with st.container(horizontal=True, horizontal_alignment="right"):
+        if st.button("다음", icon=":material/arrow_forward:", icon_position="right", type="primary", key="pf-next1"):
+            missing = [str(i + 1) for i, a in enumerate(S.pf_ans) if not a]
+            if missing:
+                st.warning(f"아직 고르지 않은 문항이 있어요: {', '.join(missing)}번", icon=":material/edit_note:")
+            else:
+                go(2)
+                st.rerun()
+    st.stop()
+
+# ── ② 가치와 강점 ────────────────────────────────────────────
+if stage == 2:
+    d = S.pf_draft
+    st.title("일할 때의 나를 조금 더 알려주세요", anchor=False)
+    st.caption("고른 내용은 간이검사 결과에 반영돼요. 약 1분이면 돼요.")
     with card("pf-values", "white"):
-        st.markdown("#### 2. 일할 때 중요한 것과 나의 강점")
-        st.markdown("**일할 때 가장 중요한 가치** · 중요한 순서대로 골라 주세요 (2·3순위는 선택)")
-        prev_v = (saved.get("values") or []) + [None, None, None]
+        st.markdown("**01 · 가장 중요한 가치** · 필수")
+        st.caption("중요한 순서대로 골라 주세요. 1개만 골라도 돼요.")
+        prev_v = (d.get("values") or []) + [None, None, None]
         vcols = st.columns(3, gap="small")
         picks = []
         for i, col in enumerate(vcols):
@@ -51,38 +89,43 @@ with st.form("profile_form", border=False):
                     index=profile.VALUES.index(prev_v[i]) if prev_v[i] in profile.VALUES else None,
                     placeholder="가치를 골라 주세요", key=f"pf_value_{i}",
                 ))
-        values = [v for v in dict.fromkeys(p for p in picks if p)]
-        st.space("small")
+        values = list(dict.fromkeys(v for v in picks if v))
+    st.space("small")
+    with card("pf-abil-card", "white"):
+        st.markdown("**02 · 자신 있는 능력** · 필수")
         abilities = st.pills(
-            "자신 있는 능력 (최대 5개 · 눌러서 고르고, 다시 누르면 빠져요)", profile.ABILITIES,
-            selection_mode="multi", default=saved.get("abilities") or [], key="pf_abil",
+            "잘한다고 느끼는 것을 1개에서 5개까지 골라 주세요", profile.ABILITIES,
+            selection_mode="multi", default=d.get("abilities") or [], key="pf_abil",
         )
+    st.space("small")
+    with card("pf-trait-card", "white"):
+        st.markdown("**03 · 나를 설명하는 성격** · 선택")
         traits = st.pills(
-            "나를 잘 설명하는 성격 (최대 3개)", profile.TRAITS,
-            selection_mode="multi", default=saved.get("traits") or [], key="pf_traits",
+            "나와 가까운 것을 최대 3개까지 골라 주세요", profile.TRAITS,
+            selection_mode="multi", default=d.get("traits") or [], key="pf_traits",
         )
+    st.space("small")
+    with card("pf-like-card", "white"):
+        st.markdown("**04 · 좋아하는 것, 해 본 경험** · 선택")
         likes = st.text_area(
-            "좋아하는 것이나 해 본 경험 (선택)",
-            value=saved.get("likes", ""),
+            "관심사나 기억에 남는 활동을 결과에 함께 담을 수 있어요",
+            value=d.get("likes") or "",
             placeholder="예: 동아리에서 행사 기획을 맡았어요. 데이터로 근거를 찾는 게 재밌었어요.",
             max_chars=200, key="pf_likes",
         )
-
-    # ── 3. 공식 검사 결과 (선택, 끌 수 있음) ───────────────────
     test: dict = {}
     if profile.test_input_enabled():
         st.space("small")
-        with card("pf-test", "mint"):
-            st.markdown("#### 3. 공식 검사 결과가 있다면 (선택)")
+        old = d.get("test") or {}
+        with st.expander("공식 검사 결과가 있나요? 커리어넷·고용24 결과를 옮겨 적어 보세요", icon=":material/add:", expanded=bool(old)):
             st.caption(
-                "커리어넷·고용24에서 직업심리검사를 했다면 결과를 옮겨 적어 주세요. 입력하면 간이 체크보다 우선해서 써요. "
+                "입력한 흥미 유형과 가치는 간이검사 응답보다 우선 적용돼요. "
                 "[커리어넷 진로심리검사](https://www.career.go.kr/cnet/front/inspct/inspctMain.do) · "
                 "[고용24 직업심리검사](https://www.work24.go.kr)"
             )
-            old = saved.get("test") or {}
             t1, t2, t3 = st.columns([1.2, 1, 1.2], gap="medium")
             with t1:
-                name = st.selectbox(
+                tname = st.selectbox(
                     "검사 이름", profile.TESTS, index=profile.TESTS.index(old["name"]) if old.get("name") in profile.TESTS else None,
                     placeholder="검사를 골라 주세요", key="pf_test_name",
                 )
@@ -96,56 +139,54 @@ with st.form("profile_form", border=False):
                     "결과의 상위 가치 (최대 3개)", profile.VALUES, selection_mode="multi",
                     default=old.get("values") or [], key="pf_test_values",
                 )
-            if name and (codes or tvals):
-                test = {"name": name, "riasec": codes, "values": tvals}
-
-    st.space("small")
-    submitted = st.form_submit_button("프로필 저장하고 결과 보기", type="primary", icon=":material/check:", width="stretch")
-
-if submitted:
-    missing = [str(i + 1) for i, a in enumerate(answers) if not a]
-    if missing:
-        st.warning(f"아직 고르지 않은 문항이 있어요: {', '.join(missing)}번. 모든 문항에 답해 주세요.", icon=":material/edit_note:")
-        st.stop()
-    over = []
-    if len(abilities or []) > 5:
-        over.append(f"자신 있는 능력은 5개까지예요(지금 {len(abilities)}개)")
-    if len(traits or []) > 3:
-        over.append(f"성격은 3개까지예요(지금 {len(traits)}개)")
-    if test and len(test.get("riasec") or []) > 2:
-        over.append("흥미 유형은 2개까지예요")
-    if test and len(test.get("values") or []) > 3:
-        over.append("결과의 상위 가치는 3개까지예요")
-    if over:
-        st.warning(" · ".join(over) + ". 몇 개를 다시 눌러 빼 주세요.", icon=":material/edit_note:")
-        st.stop()
-    abilities, traits = list(abilities or []), list(traits or [])
-    pii = find_personal_info(likes)
-    if pii:
-        st.warning(f"{', '.join(pii)}처럼 보이는 정보가 있어서 저장하지 않았어요. 그 부분을 빼고 다시 저장해 주세요.", icon=":material/lock:")
-        st.stop()
-    profile.save({
-        "answers": answers, "riasec": profile.riasec_scores(answers), "values": values,
-        "abilities": abilities, "traits": traits, "likes": likes.strip(), "test": test,
-    })
-    st.toast("결과지가 나왔어요! 아래로 이동해요", icon=":material/check:")
-    st.success("**결과지가 아래에 나왔어요 ↓** 자동으로 내려가요. 안 내려가면 화면을 조금 아래로 내려 주세요.", icon=":material/arrow_downward:")
-    # 결과지로 바로 내려가기: 화면 안(안내 바로 아래)에 높이 0 iframe을 두어야 브라우저가 지연 없이 실행해요
-    S.pf_saves = S.get("pf_saves", 0) + 1  # 저장할 때마다 새로 실행되도록
-    components.html(
-        f"<!-- save {S.pf_saves} -->"
-        "<script>(()=>{let n=0,ok=0,stop=false;const d=window.parent.document;"
-        "['wheel','touchstart','keydown'].forEach(ev=>d.addEventListener(ev,()=>{stop=true},{once:true,passive:true}));"
-        "const go=()=>{if(stop)return;const el=d.querySelector('.st-key-pf-report');"
-        "if(el&&el.getBoundingClientRect().height>40){const t=el.getBoundingClientRect().top;"
-        "el.style.scrollMarginTop='72px';if(t<30||t>160){el.scrollIntoView({behavior:ok?'auto':'smooth',block:'start'});ok=0}else{ok++}}"
-        "if(++n<40&&ok<4)setTimeout(go,250);};setTimeout(go,300);})();</script>",
-        height=0,
+            if tname and (codes or tvals):
+                test = {"name": tname, "riasec": codes, "values": tvals}
+    S.pf_draft = {"values": values, "abilities": list(abilities or []), "traits": list(traits or []), "likes": likes, "test": test}
+    st.html(
+        f'<div class="jd-progress"><span>가치 <b>{len(values)} / 3</b> · 능력 <b>{len(abilities or [])} / 5</b> · '
+        f'성격 <b>{len(traits or [])} / 3</b></span></div>'
     )
+    with st.container(horizontal=True, vertical_alignment="center"):
+        if st.button("이전", icon=":material/arrow_back:", key="pf-prev2"):
+            go(1)
+            st.rerun()
+        st.space("stretch")
+        show = st.button("결과 보기", icon=":material/arrow_forward:", icon_position="right", type="primary", key="pf-show")
+    if show:
+        problems = []
+        if not values:
+            problems.append("중요한 가치를 하나 이상 골라 주세요")
+        if not abilities:
+            problems.append("자신 있는 능력을 하나 이상 골라 주세요")
+        if len(abilities or []) > 5:
+            problems.append(f"자신 있는 능력은 5개까지예요(지금 {len(abilities)}개)")
+        if len(traits or []) > 3:
+            problems.append(f"성격은 3개까지예요(지금 {len(traits)}개)")
+        if test and len(test.get("riasec") or []) > 2:
+            problems.append("흥미 유형은 2개까지예요")
+        if test and len(test.get("values") or []) > 3:
+            problems.append("결과의 상위 가치는 3개까지예요")
+        pii = find_personal_info(likes)
+        if pii:
+            problems.append(f"{', '.join(pii)}처럼 보이는 정보는 빼 주세요")
+        if problems:
+            st.warning(" · ".join(problems), icon=":material/edit_note:")
+            st.stop()
+        answers = list(S.pf_ans)
+        profile.save({
+            "answers": answers, "riasec": profile.riasec_scores(answers), "values": values,
+            "abilities": list(abilities), "traits": list(traits or []), "likes": likes.strip(), "test": test,
+        })
+        S.pf_fit_rows = None
+        go(3)
+        st.rerun()
+    st.stop()
 
+# ── ③ 결과 ───────────────────────────────────────────────────
 p = profile.get()
 if not p:
-    st.stop()
+    go(1)
+    st.rerun()
 
 # ── 결과 ─────────────────────────────────────────────────────
 st.space("medium")
@@ -153,9 +194,9 @@ report = st.container(key="pf-report")
 ri = profile.effective_riasec(p)
 top = profile.top_codes(ri, 2)
 with report:
-    st.html('<div class="jd-report-tag">📋 직무 간이검사 결과지</div>')
+    st.html('<div class="jd-report-tag">직무 간이검사 결과지</div>')
     st.markdown(f"## 나는 **{' · '.join(profile.RIASEC[c] for c in top)}**에 가까워요")
-    st.caption("아래 결과는 직무 패널의 선배 대답, 직무 적합도, '3년 뒤의 나'에 그대로 이어져요.")
+    st.caption("아래 결과는 직무 탐색의 선배 대답, 직무 적합도, '3년 뒤의 나'에 그대로 이어져요.")
 left, right = report.columns([1.1, 1], gap="medium")
 with card("pf-result", "white", parent=left):
     st.markdown(f"### {' · '.join(profile.RIASEC[c] for c in top)}")
@@ -168,12 +209,12 @@ with card("pf-result", "white", parent=left):
         .encode(
             y=alt.Y("유형:N", sort=list(df["유형"]), title=None),
             x=alt.X("점수:Q", scale=alt.Scale(domain=[0, 100]), title=None),
-            color=alt.Color("강조:N", scale=alt.Scale(domain=["상위", "기타"], range=["#111111", "#C8C8C8"]), legend=None),
+            color=alt.Color("강조:N", scale=alt.Scale(domain=["상위", "기타"], range=["#D9F477", "#4A4C40"]), legend=None),
             tooltip=["유형", "점수"],
         )
         .properties(height=210)
-        .configure_view(strokeWidth=0)
-        .configure_axis(grid=False, labelColor="#555555", domainColor="#D4D4D4")
+        .configure_view(strokeWidth=0).configure(background="transparent")
+        .configure_axis(grid=False, labelColor="#B1AFA3", domainColor="#45473B")
     )
     st.altair_chart(chart, width="stretch")
     src = (p.get("test") or {}).get("name") if profile.test_input_enabled() else None
@@ -192,12 +233,12 @@ with card("pf-values-res", "white", parent=right):
 with report:
     st.space("small")
     with st.container(horizontal=True, vertical_alignment="center", key="pf-next"):
-        st.markdown("**다음 단계** · 이 결과로 직무 패널에서 직업을 골라 선배와 이야기해 보세요.")
-        if st.button("직무 패널로 가기", icon=":material/arrow_forward:", type="primary", key="pf-go-panel"):
-            st.switch_page("app_pages/panel.py")
-        if st.button("다시 검사하기", icon=":material/restart_alt:", key="pf-clear"):
-            profile.clear()
+        st.markdown("**다음은 직무 탐색이에요** · 검사 결과를 바탕으로 관심 직무를 골라 AI 선배에게 일과와 준비 방법을 물어보세요.")
+        if st.button("응답 수정하기", icon=":material/edit:", key="pf-edit"):
+            go(1)
             st.rerun()
+        if st.button("직무 탐색으로 가기", icon=":material/arrow_forward:", icon_position="right", type="primary", key="pf-go-panel"):
+            st.switch_page("app_pages/panel.py")
 
 # ── 직무 적합도 (공공데이터) ─────────────────────────────────
 st.space("medium")

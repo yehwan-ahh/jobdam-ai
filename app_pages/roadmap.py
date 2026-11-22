@@ -9,7 +9,7 @@ from utils.style import card
 
 S = st.session_state
 st.title("커리어 로드맵 🛣️", anchor=False)
-st.caption("직무 간이검사 → 직무 패널 → 3년 뒤의 나를 마치면, 고른 직업과 길로 '지금의 나'에서 '3년 뒤의 나'까지 가는 길을 이정표로 그려 줘요. 자격·시험일정·교육과정은 공공데이터, 단계별 행동은 AI 제안이에요.")
+st.caption("직무 간이검사 → 직무 탐색 → 3년 뒤의 나를 마치면, 고른 직업과 길로 '지금의 나'에서 '3년 뒤의 나'까지 가는 길을 이정표로 그려 줘요. 자격·시험일정·교육과정은 공공데이터, 단계별 행동은 AI 제안이에요.")
 
 # ── 순서: ① 직무 간이검사 → ② 직무 패널 → ③ 3년 뒤의 나 → ④ 커리어 로드맵 ──────────
 job = (S.get("selected_job") or {}).get("name")
@@ -19,11 +19,11 @@ if not (job and path):
     with card("rm-gate", "white"):
         st.markdown("#### 로드맵은 마지막 단계예요")
         st.markdown(
-            "**① 직무 간이검사 → ② 직무 패널에서 직업 고르기 → ③ 3년 뒤의 나에서 길 고르기**를 마치면, "
+            "**① 직무 간이검사 → ② 직무 탐색에서 직업 고르기 → ③ 3년 뒤의 나에서 길 고르기**를 마치면, "
             "그 직업과 길로 3년 커리어 로드맵을 그려 줘요."
         )
         steps = [("① 직무 간이검사", me is not None, "app_pages/profile.py"),
-                 ("② 직무 패널에서 직업 고르기", bool(job), "app_pages/panel.py"),
+                 ("② 직무 탐색에서 직업 고르기", bool(job), "app_pages/panel.py"),
                  ("③ 3년 뒤의 나에서 길 고르기", bool(path), "app_pages/future.py")]
         for label, done, _ in steps:
             st.markdown(f"{'✅' if done else '⬜'} {label}")
@@ -34,7 +34,7 @@ if not (job and path):
             with st.container():
                 st.markdown(f"#### 👉 다음 할 일 · {nxt[0]}")
                 st.caption("이 단계를 마치면 로드맵에 한 걸음 더 가까워져요.")
-            go_label = {"app_pages/profile.py": "직무 간이검사 하러 가기", "app_pages/panel.py": "직무 패널에서 직업 고르기",
+            go_label = {"app_pages/profile.py": "직무 간이검사 하러 가기", "app_pages/panel.py": "직무 탐색에서 직업 고르기",
                         "app_pages/future.py": "3년 뒤의 나에서 길 고르기"}[nxt[1]]
             if st.button(go_label, icon=":material/arrow_forward:", key="cta-rmgate-go"):
                 st.switch_page(nxt[1])
@@ -85,48 +85,60 @@ def road_svg(plan: dict, rm: dict) -> str:
     out = [
         '<svg viewBox="0 0 1200 420" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block"'
         ' font-family="Noto Sans KR, Malgun Gothic, sans-serif">',
-        '<rect x="0" y="0" width="1200" height="420" rx="22" fill="#F4F4F1"/>',
+        '<rect x="0" y="0" width="1200" height="420" rx="22" fill="#121310"/>',
         # 지도 느낌의 점 무늬
         '<defs><pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">'
-        '<circle cx="2" cy="2" r="1.2" fill="#DDDDD8"/></pattern></defs>',
+        '<circle cx="2" cy="2" r="1.2" fill="#2A2B25"/></pattern></defs>',
         '<rect x="0" y="0" width="1200" height="420" rx="22" fill="url(#dots)"/>',
-        f'<path d="{d}" fill="none" stroke="#D6D6D1" stroke-width="56" stroke-linecap="round"/>',
-        f'<path d="{d}" fill="none" stroke="#2A2A2A" stroke-width="44" stroke-linecap="round"/>',
-        f'<path d="{d}" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-dasharray="16 14" stroke-linecap="round"/>',
+        f'<path d="{d}" fill="none" stroke="#3A3C32" stroke-width="56" stroke-linecap="round"/>',
+        f'<path d="{d}" fill="none" stroke="#24261F" stroke-width="44" stroke-linecap="round"/>',
+        f'<path d="{d}" fill="none" stroke="#D9F477" stroke-width="3" stroke-dasharray="16 14" stroke-linecap="round"/>',
         # 출발
-        f'<circle cx="{start[0]}" cy="{start[1]}" r="20" fill="#FFFFFF" stroke="#111111" stroke-width="4"/>',
-        f'<circle cx="{start[0]}" cy="{start[1]}" r="7" fill="#111111"/>',
-        f'<text x="{start[0] - 10}" y="{start[1] + 52}" font-size="17" font-weight="800" fill="#111111">지금의 나</text>',
-        f'<text x="{start[0] - 10}" y="{start[1] + 74}" font-size="13" fill="#6B6B6B">{e(rm["start"])}</text>',
+        f'<circle cx="{start[0]}" cy="{start[1]}" r="20" fill="#121310" stroke="#D9F477" stroke-width="4"/>',
+        f'<circle cx="{start[0]}" cy="{start[1]}" r="7" fill="#D9F477"/>',
+        f'<text x="{start[0] - 10}" y="{start[1] + 52}" font-size="17" font-weight="800" fill="#F5F3EA">지금의 나</text>',
+        f'<text x="{start[0] - 10}" y="{start[1] + 74}" font-size="13" fill="#B1AFA3">{e(rm["start"])}</text>',
     ]
     for i, ((x, y), s) in enumerate(zip(pts, plan["stages"])):
         up = y < 200
         ly = y - 62 if up else y + 54
         out += [
-            f'<circle cx="{x}" cy="{y}" r="25" fill="#111111" stroke="#FFFFFF" stroke-width="4"/>',
-            f'<text x="{x}" y="{y + 7}" text-anchor="middle" font-size="19" font-weight="800" fill="#FFFFFF">{i + 1}</text>',
-            f'<text x="{x}" y="{ly}" text-anchor="middle" font-size="13" font-weight="700" fill="#6B6B6B">{e(s["period"])}</text>',
-            f'<text x="{x}" y="{ly + 24}" text-anchor="middle" font-size="19" font-weight="800" fill="#111111">{e(s["title"])}</text>',
+            f'<circle cx="{x}" cy="{y}" r="25" fill="#D9F477" stroke="#121310" stroke-width="4"/>',
+            f'<text x="{x}" y="{y + 7}" text-anchor="middle" font-size="19" font-weight="800" fill="#171717">{i + 1}</text>',
+            f'<text x="{x}" y="{ly}" text-anchor="middle" font-size="13" font-weight="700" fill="#B1AFA3">{e(s["period"])}</text>',
+            f'<text x="{x}" y="{ly + 24}" text-anchor="middle" font-size="19" font-weight="800" fill="#F5F3EA">{e(s["title"])}</text>',
         ]
     # 도착(깃발)
     fx, fy = end
     out += [
-        f'<line x1="{fx}" y1="{fy}" x2="{fx}" y2="{fy - 70}" stroke="#111111" stroke-width="4" stroke-linecap="round"/>',
-        f'<path d="M{fx},{fy - 70} L{fx + 44},{fy - 58} L{fx},{fy - 46} Z" fill="#111111"/>',
-        f'<text x="{fx - 14}" y="{fy - 50}" text-anchor="end" font-size="17" font-weight="800" fill="#111111">3년 뒤의 나</text>',
+        f'<line x1="{fx}" y1="{fy}" x2="{fx}" y2="{fy - 70}" stroke="#D9F477" stroke-width="4" stroke-linecap="round"/>',
+        f'<path d="M{fx},{fy - 70} L{fx + 44},{fy - 58} L{fx},{fy - 46} Z" fill="#F5F3EA"/>',
+        f'<text x="{fx - 14}" y="{fy - 50}" text-anchor="end" font-size="17" font-weight="800" fill="#F5F3EA">3년 뒤의 나</text>',
     ]
-    out.append(f'<text x="40" y="44" font-size="22" font-weight="800" fill="#111111">{e(rm["job"])} · {e(rm["path"])}</text>')
-    out.append(f'<text x="40" y="70" font-size="15" fill="#555555">{e(plan["headline"])}</text>')
+    out.append(f'<text x="40" y="44" font-size="22" font-weight="800" fill="#F5F3EA">{e(rm["job"])} · {e(rm["path"])}</text>')
+    out.append(f'<text x="40" y="70" font-size="15" fill="#B1AFA3">{e(plan["headline"])}</text>')
     out.append("</svg>")
     return "".join(out)
 
 
 if plan.get("note"):
     st.info(plan["note"], icon=":material/info:")
+
+# ── 이번 주에 할 일 (첫 단계의 할 일 중 바로 시작할 수 있는 것) ──────────
+first = (plan.get("stages") or [{}])[0]
+week = [a for a in (first.get("actions") or [])][:3]
+if week:
+    with card("rm-week", "white"):
+        st.markdown("#### 이번 주에 할 일")
+        st.caption(f"'{first.get('title', '')}' 단계의 첫걸음이에요. 해낸 일은 체크해 보세요(이 화면에서만 기억해요).")
+        for i, a in enumerate(week):
+            st.checkbox(a, key=f"rm-week-{i}-{hash(a) % 10000}")
+    st.space("small")
+st.markdown("#### 시기별 준비 계획")
 svg = road_svg(plan, rm)
 st.space("small")
 st.image(svg, width="stretch")  # st.html은 SVG를 걸러 내서 이미지로 그립니다
-st.markdown(f"🏁 **3년 뒤의 나** · {plan['checkpoint']}")
+st.markdown(f"**3년 뒤 목표** · {plan['checkpoint']}")
 
 # 이 길의 숫자(KOSIS)
 stat = data.get("stat")

@@ -6,7 +6,8 @@ from utils.evidence import company_evidence, future_evidence, show_sources
 from utils.prompts import find_personal_info, future_system, polish
 from utils.style import card, hero_emoji, icon_tile, scroll_to_top
 
-st.title("3년 뒤의 나 🔭", anchor=False)
+_tj = (st.session_state.get("selected_job") or {}).get("name")
+st.title(f"{_tj}까지 가는 3년, 어떤 길이 나다울까요?" if _tj else "3년 뒤의 나", anchor=False)
 if not any(st.session_state.get("future_messages", {}).values()) and not st.session_state.get("future_jump"):
     scroll_to_top()
 st.caption("갈림길을 고르면 그 길을 걸은 '3년 뒤의 나'가 좋았던 점과 아쉬웠던 점을 들려줍니다.")
@@ -14,7 +15,7 @@ target_job = (st.session_state.get("selected_job") or {}).get("name")
 _me = profile.get()
 with st.container(horizontal=True):
     if target_job:
-        st.badge(f"직무 패널에서 고른 직무: {target_job}", icon=":material/work:", color="blue")
+        st.badge(f"직무 탐색에서 고른 직무: {target_job}", icon=":material/work:", color="blue")
     if _me:
         st.badge(f"직무 간이검사: {profile.summary_line(_me)}", icon=":material/person_search:", color="gray")
 if not _me:
@@ -23,17 +24,17 @@ if not _me:
 if not llm.is_enabled():
     st.info(DEMO_NOTICE, title="시연 모드", icon=":material/science:")
 
-# 순서: 직무 간이검사 → 직무 패널에서 직업 고르기 → 3년 뒤의 나
+# 순서: 직무 간이검사 → 직무 탐색에서 직업 고르기 → 3년 뒤의 나
 if not target_job:
     st.space("small")
     with card("future-gate", "white"):
-        st.markdown("#### 먼저 직무 패널에서 직업을 골라 주세요")
+        st.markdown("#### 먼저 직무 탐색에서 직업을 골라 주세요")
         st.markdown(
             "'3년 뒤의 나'는 고른 직업을 목표로 걸어간 미래의 내가 이야기해요. "
-            "**① 직무 간이검사 → ② 직무 패널에서 직업 고르기 → ③ 3년 뒤의 나** 순서로 진행해요."
+            "**① 직무 간이검사 → ② 직무 탐색에서 직업 고르기 → ③ 3년 뒤의 나** 순서로 진행해요."
         )
         with st.container(horizontal=True):
-            if st.button("직무 패널에서 직업 고르기", type="primary", icon=":material/groups:"):
+            if st.button("직무 탐색에서 직업 고르기", type="primary", icon=":material/groups:"):
                 st.switch_page("app_pages/panel.py")
             if not _me and st.button("직무 간이검사부터 하기", icon=":material/person_search:"):
                 st.switch_page("app_pages/profile.py")
@@ -51,7 +52,7 @@ def pick_path(path: str) -> None:
 rec = profile.recommend_path(_me) if _me else []
 st.space("small")
 with st.container(key="future-synth"):
-    st.html('<div class="jd-report-tag">🧩 직무 간이검사 + 직무 패널 종합</div>')
+    st.html('<div class="jd-report-tag">🧩 직무 간이검사 + 직무 탐색 종합</div>')
     a1, a2, a3 = st.columns([1, 1.15, 1.35], gap="medium")
     with card("syn-me", "white", parent=a1):
         st.caption("① 직무 간이검사")
@@ -63,7 +64,7 @@ with st.container(key="future-synth"):
             if st.button("간이검사 하기", icon=":material/person_search:", key="syn-do-test"):
                 st.switch_page("app_pages/profile.py")
     with card("syn-job", "white", parent=a2):
-        st.caption("② 직무 패널에서 고른 직무")
+        st.caption("② 직무 탐색에서 고른 직무")
         st.markdown(f"**{target_job}**")
         profile.render_fit(target_job, "future")
     with card("syn-path", "white", parent=a3):
@@ -81,7 +82,7 @@ with st.container(key="future-synth"):
 # ── 갈림길 한눈에 비교 (KOSIS 실제 값) ─────────────────────────
 if kosis.is_enabled():
     st.space("small")
-    st.subheader("갈림길 한눈에 비교", anchor=False)
+    st.subheader("갈림길 고르기 · 숫자로 비교하기", anchor=False)
     st.caption(
         (f"'{target_job}'을(를) 목표로 할 때 " if target_job else "")
         + "세 갈림길을 공식 통계로 나란히 봐요. 숫자는 모두 KOSIS 원자료 값이에요."
@@ -242,7 +243,7 @@ st.space("small")
 with st.container(key="cta-roadmap", horizontal=True, vertical_alignment="center"):
     with st.container():
         st.markdown(f"#### 🛣️ 마지막 단계 · '{choice}' 길로 '{target_job}'까지 가는 3년 커리어 로드맵을 만들어요")
-        st.caption("직무 간이검사 결과 + 직무 패널에서 고른 직업 + 지금 고른 길을 합쳐, 할 일·자격·국비 교육을 이정표로 정리해 줘요. 3년 뒤의 나와 먼저 대화해 보면 길을 고르는 데 도움이 돼요.")
+        st.caption("직무 간이검사 결과 + 직무 탐색에서 고른 직업 + 지금 고른 길을 합쳐, 할 일·자격·국비 교육을 이정표로 정리해 줘요. 3년 뒤의 나와 먼저 대화해 보면 길을 고르는 데 도움이 돼요.")
     if st.button("이 길로 커리어 로드맵 만들기", icon=":material/route:", key="cta-roadmap-go", type="primary"):
         st.session_state.chosen_path = choice
         st.session_state.roadmap_request = True
