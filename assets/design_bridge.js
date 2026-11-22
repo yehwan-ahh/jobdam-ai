@@ -55,6 +55,7 @@ function showJobtalkConnections(connections) {
 window.addEventListener("message",event => {
   if (event.source !== parent || event.data?.type !== "jobtalk-update") return;
   showJobtalkConnections(event.data.connections);
+  setChatControls(event.data.connections);
   const response = event.data.response;
   if (!bridgeActive || response?.id !== bridgeActive.request.id) return;
   const item = bridgeActive;
@@ -87,75 +88,125 @@ function appendJobtalkLinks(bubble,links) {
     bubble.append(document.createElement("br"),anchor);
   }
 }
-const renderExploreChat = renderChat;
-renderChat = function(forceOpen) {
-  renderExploreChat(forceOpen);
+function chatStatusAfter(anchor) {
+  const status = document.createElement("p");
+  status.className = "roadmap-note";
+  status.setAttribute("role","status");
+  anchor.after(status);
+  return status;
+}
+
+const exploreStatus = chatStatusAfter(byId("chat-log"));
+const futureStatus = chatStatusAfter(byId("future-chat-log"));
+const missingAI = "AI 연결 설정에서 API 키를 입력해 주세요.";
+let aiConfigured = false;
+let exploreChatBusy = false;
+let futureChatBusy = false;
+
+function updateChatAvailability(connections) {
+  if (!Array.isArray(connections)) return;
+  const configured = connections.some(item => item.key === "ai" && item.configured);
+  if (configured === aiConfigured && exploreStatus.textContent) return;
+  aiConfigured = configured;
+  for (const status of [exploreStatus,futureStatus]) status.textContent = configured ? "" : missingAI;
+}
+
+function appendResponseLinks(log,entry) {
+  if (!entry.links?.length) return;
+  const bubbles = log.querySelectorAll(".bubble");
+  appendJobtalkLinks(bubbles[bubbles.length-1],entry.links);
+}
+
+renderChat = function(forceOpen=false) {
   const entries = chatHistory.get(chatRole) || [];
-  const bubbles = byId("chat-log").querySelectorAll(".bubble");
-  if (entries.at(-1)?.links) appendJobtalkLinks(bubbles[bubbles.length-1],entries.at(-1).links);
+  const log = byId("chat-log");
+  byId("explore-chat").hidden = !forceOpen && !chatRole && !entries.length;
+  log.replaceChildren();
+  for (const entry of entries) {
+    if (chatRole) appendMentorMessage(log,entry);
+    else log.append(chatBubble(entry.text,entry.user));
+    appendResponseLinks(log,entry);
+  }
+  log.scrollTop = log.scrollHeight;
 };
 
-let exploreChatBusy = false;
 answer = async function(question) {
-  if (exploreChatBusy) return;
+  if (!aiConfigured || exploreChatBusy) {
+    if (!aiConfigured) exploreStatus.textContent = missingAI;
+    return;
+  }
   exploreChatBusy = true;
   const role = chatRole;
   const history = chatHistory.get(role) || [];
   const payload = {action:"chat",mode:role ? "mentor" : "guide",job:role?.name,question,history:jobtalkHistory(history)};
-  const message = {user:true,text:question,time:new Date()};
-  const fallback = role ? {...mentorReply(role,question,history.at(-1)),time:new Date()} : adviceFor(question);
-  const pending = {text:"답변을 준비하고 있어요…",time:new Date()};
-  history.push(message,pending);
-  chatHistory.set(role,history);
-  renderChat(true);
+  const input = byId("chat-input");
+  input.disabled = true;
+  exploreStatus.textContent = "AI가 답변을 준비하고 있어요…";
   const result = await requestJobtalk(payload);
-  const response = result.text
-    ? {text:jobtalkReplyText(result),time:new Date(),prompts:fallback.prompts,links:result.links}
-    : {...fallback,time:new Date()};
-  history[history.indexOf(pending)] = response;
+  if (result.text) {
+    history.push({user:true,text:question,time:new Date()},
+      {text:jobtalkReplyText(result),time:new Date(),links:result.links});
+    chatHistory.set(role,history);
+  }
   if (chatRole === role) {
     renderChat(true);
-    if (!result.text) byId("chat-log").append(chatBubble(result.label || "시연 응답 · 서버 응답 지연",false));
-    byId("chat-log").scrollTop = byId("chat-log").scrollHeight;
+    exploreStatus.textContent = result.text ? "" : (result.label || "AI 응답을 받지 못했어요. 다시 시도해 주세요.");
+    if (!result.text && !input.value) input.value = question;
   }
+  input.disabled = !aiConfigured;
   exploreChatBusy = false;
 };
 
-let futureChatBusy = false;
-const answerFutureDemo = answerAsFutureSelf;
+const renderFutureHistory = renderFutureChat;
+renderFutureChat = function() {
+  const previous = activeFutureConversation;
+  renderFutureHistory();
+  if (activeFutureConversation && previous !== activeFutureConversation) {
+    const log = byId("future-chat-log");
+    activeFutureConversation.messages.forEach((entry,index) => appendJobtalkLinks(log.children[index],entry.links));
+  }
+};
+
 answerAsFutureSelf = async function(question) {
   const conversation = activeFutureConversation;
-  if (!conversation || !state.path || futureChatBusy) return;
+  if (!conversation || !state.path || futureChatBusy || !aiConfigured) {
+    if (!aiConfigured) futureStatus.textContent = missingAI;
+    return;
+  }
   futureChatBusy = true;
+  const input = byId("future-chat-input");
+  input.disabled = true;
   const payload = {action:"chat",mode:"future",job:state.role.name,path:state.path.name,question,
     history:jobtalkHistory(conversation.messages)};
-  conversation.messages.push({text:question,user:true});
-  appendFutureMessage(question,true);
-  const pending = appendFutureMessage("답변을 준비하고 있어요…");
-  pending.scrollIntoView({block:"nearest"});
+  futureStatus.textContent = "AI가 답변을 준비하고 있어요…";
   const result = await requestJobtalk(payload);
   if (result.text) {
-    const text = jobtalkReplyText(result);
-    conversation.messages.push({text,user:false});
+    const entry = {text:jobtalkReplyText(result),user:false,links:result.links};
+    conversation.messages.push({text:question,user:true},entry);
     if (activeFutureConversation === conversation) {
-      pending.textContent = text;
-      appendJobtalkLinks(pending,result.links);
-    }
-  } else {
-    conversation.messages.pop();
-    if (activeFutureConversation === conversation) {
-      pending.previousElementSibling?.remove();
-      pending.remove();
-      answerFutureDemo(question);
-      appendFutureMessage(result.label || "시연 응답 · 서버 응답 지연");
+      appendFutureMessage(question,true);
+      appendJobtalkLinks(appendFutureMessage(entry.text),entry.links);
+      const log = byId("future-chat-log");
+      log.scrollTop = log.scrollHeight;
     }
   }
   if (activeFutureConversation === conversation) {
-    const log = byId("future-chat-log");
-    log.scrollTop = log.scrollHeight;
+    futureStatus.textContent = result.text ? "" : (result.label || "AI 응답을 받지 못했어요. 다시 시도해 주세요.");
+    if (!result.text && !input.value) input.value = question;
   }
+  input.disabled = !aiConfigured;
   futureChatBusy = false;
 };
+
+function setChatControls(connections) {
+  updateChatAvailability(connections);
+  byId("chat-input").disabled = !aiConfigured || exploreChatBusy;
+  byId("future-chat-input").disabled = !aiConfigured || futureChatBusy;
+  for (const id of ["chat-form","future-chat-form"]) {
+    byId(id).querySelector("button").disabled = !aiConfigured;
+  }
+}
+setChatControls([]);
 
 const buildRoadmapDemo = renderRoadmap;
 const personalizedPlans = new Map();

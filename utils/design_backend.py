@@ -90,25 +90,6 @@ def recruitment_reply(job):
                     + "\n".join(lines), "sources": [RECRUIT_SOURCE], "links": links}
 
 
-def company_career_examples(job):
-    if re.search(r"데이터|인공지능|개발|소프트웨어|클라우드|보안|디자인|마케팅|플랫폼|AI|UX|UI", job, re.I):
-        companies = [
-            ("네이버", "플랫폼·클라우드 관련 직군", "https://recruit.navercorp.com/main.do"),
-            ("카카오", "서비스와 데이터·개발 관련 직군", "https://careers.kakao.com/jobs"),
-        ]
-    elif re.search(r"반도체|전자|제조|품질|생산|설비", job):
-        companies = [("삼성", "제조·연구개발·품질 관련 관계사", "https://www.samsungcareers.com/hr/")]
-    else:
-        return None
-    rows = "\n".join(f"• {name} — {reason}을 살펴보세요." for name, reason, _ in companies)
-    return {
-        "text": f"고용24 공고를 가져오지 못했어요. {job} 쪽이라면 아래 공식 채용 페이지부터 살펴볼 만해요.\n"
-                + rows + "\n현재 모집 여부와 지원 요건은 각 페이지에서 확인해 주세요.",
-        "sources": ["기업 공식 채용 페이지"],
-        "links": [{"label": name + " 공식 채용", "url": url} for name, _, url in companies],
-    }
-
-
 def _text(request, key, limit):
     value = request.get(key)
     return value.strip()[:limit] if isinstance(value, str) else ""
@@ -122,7 +103,7 @@ def chat(request):
     if not question or mode not in {"mentor", "future", "guide"}:
         return {"text": "", "label": "질문을 확인해 주세요."}
     if prompts.find_personal_info(question):
-        return {"text": "개인정보를 빼고 질문을 다시 적어 주세요.", "label": "개인정보 보호"}
+        return {"text": "", "label": "개인정보를 빼고 질문을 다시 적어 주세요."}
     history = []
     supplied = request.get("history")
     if isinstance(supplied, list):
@@ -134,28 +115,17 @@ def chat(request):
             if role in {"user", "assistant"} and content and not prompts.find_personal_info(content):
                 history.append({"role": role, "content": content})
     history.append({"role": "user", "content": question})
-    hiring = bool(re.search(r"(회사|기업|직장|스타트업)", question) and re.search(r"(추천|어디|갈 만|알려)", question))
-    if hiring:
-        listings = recruitment_reply(job)
-        if listings:
-            return listings
-        examples = company.smallgiant_examples(job) if job and get_secret("WORK24_SMALLGIANT_KEY") else []
-        if examples:
-            rows = [
-                f"• {row['coNm']} — {row.get('indTpNm') or '업종 미표기'}"
-                + (f", 주요 제품·서비스: {row['coMainProd']}" if row.get("coMainProd") else "")
-                for row in examples
-            ]
-            text = f"{job}와 관련된 업종에서 살펴볼 만한 서울 소재 기업이에요.\n" + "\n".join(rows)
-            return {"text": text + "\n채용은 각 기업의 공고에서 확인해 주세요.", "label": "공공데이터",
-                    "sources": [company.SG_SOURCE]}
-        examples = company_career_examples(job)
-        if examples:
-            return examples
-        return {"text": "공공데이터에서 바로 추천할 기업을 찾지 못했어요. 희망 지역과 관심 산업이나 찾아보고 싶은 회사 이름을 알려주면 범위를 좁힐 수 있어요.", "label": "기업 조회"}
     if not llm.is_enabled():
-        return {"text": "", "label": "시연 응답 · AI 키 미설정"}
+        return {"text": "", "label": "AI 연결 설정에서 API 키를 입력해 주세요."}
+    hiring = bool(re.search(r"(회사|기업|직장|스타트업)", question) and re.search(r"(추천|어디|갈 만|알려)", question))
+    listings = recruitment_reply(job) if hiring else None
     role_info, sources = evidence.job_evidence(job, question) if job else (None, [])
+    if hiring:
+        company_info = (listings["text"] if listings else
+                        "고용24 공고 조회 결과 없음. 다른 기업 근거가 없으면 회사명을 지어내지 말고 지역과 산업을 물어봐.")
+        role_info = "\n\n".join(filter(None, [role_info, company_info]))
+        if listings:
+            sources += listings["sources"]
     if mode == "future":
         path_info, path_sources = evidence.future_evidence(choice)
         role_info = "\n\n".join(filter(None, [role_info, path_info])) or None
@@ -167,7 +137,8 @@ def chat(request):
         system = "너는 한국 청년의 직무 탐색을 돕는 AI 가이드야. 한국어로 짧고 자연스럽게 답하고, 관심사와 전공을 물어보며 직무를 함께 좁혀 줘. 출처와 수치를 지어내지 마."
     result = llm.generate(system, history)
     return {"text": prompts.polish(result.text) if result.text else "",
-            "label": "AI 답변" if result.text else "시연 응답 · " + (result.error or "AI 호출 실패"),
+            "label": "AI 답변" if result.text else (result.error or "AI 응답을 받지 못했어요. 다시 시도해 주세요."),
+            "links": listings["links"] if result.text and listings else [],
             "sources": list(dict.fromkeys(sources)) if result.text else []}
 
 

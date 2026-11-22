@@ -19,6 +19,8 @@ body:has([data-view=explore]:not([hidden]) #explore-dock:not([hidden]), [data-vi
 #jobtalk-api-list button{flex:none;padding:3px 6px;border:1px solid #626857;border-radius:6px;background:#1d2115;color:#f4f5e8}
 #jobtalk-api-list button:disabled{opacity:.5}
 #chat-log .bubble,#future-chat-log .bubble{white-space:pre-wrap}
+#chat-quick,#future-questions,#future-headline,#future-story,.future-reflections,#path-check,.mentor-chat-note{display:none!important}
+#explore-guide .chat-mode small,#explore-chat .explore-section-head p{display:none}
 </style>
 """
 EDITOR_HOST = "\n  const host = document.createElement('aside');"
