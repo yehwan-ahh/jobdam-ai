@@ -8,10 +8,7 @@ DESIGN_FILE = Path(__file__).resolve().parents[1] / "assets" / "jobtalk-final.ht
 FRAME_HEAD = """<head>
 <base href="about:srcdoc">
 <style>
-body:has([data-view=explore]:not([hidden]) #explore-dock:not([hidden]), [data-view=roadmap]:not([hidden])) > .jobtalk-editor {
-    top: 60px;
-    bottom: auto;
-}
+body > .jobtalk-editor{display:none!important}
 #jobtalk-api-panel{position:relative;color:var(--ink);font-size:.8rem;flex:none}
 #jobtalk-api-panel summary{cursor:pointer;padding:7px;border:1px solid #47493c;border-radius:8px}
 #jobtalk-api-list{position:absolute;z-index:20;right:0;top:100%;width:min(330px,85vw);max-height:65vh;overflow:auto;padding:10px;background:#171911;border:1px solid #575a49;border-radius:10px;box-shadow:0 10px 28px #0008}
@@ -19,8 +16,9 @@ body:has([data-view=explore]:not([hidden]) #explore-dock:not([hidden]), [data-vi
 #jobtalk-api-list button{flex:none;padding:3px 6px;border:1px solid #626857;border-radius:6px;background:#1d2115;color:#f4f5e8}
 #jobtalk-api-list button:disabled{opacity:.5}
 #chat-log .bubble,#future-chat-log .bubble{white-space:pre-wrap}
-#chat-quick,#future-questions,#future-headline,#future-story,.future-reflections,#path-check,.mentor-chat-note{display:none!important}
+#future-headline,#future-story,.future-reflections,#path-check,.mentor-chat-note{display:none!important}
 #explore-guide .chat-mode small,#explore-chat .explore-section-head p{display:none}
+.jobtalk-suggest-label{margin:0;padding:0 12px;color:var(--muted);font-size:.75rem}
 .roadmap-star-track svg.jobtalk-mobile-stars{display:none}
 @media(max-width:640px){
   .roadmap-star-track svg.jobtalk-mobile-stars{display:block;width:64px}

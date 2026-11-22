@@ -98,6 +98,40 @@ function chatStatusAfter(anchor) {
 
 const exploreStatus = chatStatusAfter(byId("chat-log"));
 const futureStatus = chatStatusAfter(byId("future-chat-log"));
+function setupQuestionExamples(containerId,inputId,examples) {
+  const container = byId(containerId);
+  const label = document.createElement("p");
+  label.className = "jobtalk-suggest-label";
+  label.textContent = "질문 예시";
+  container.before(label);
+  container.setAttribute("aria-label","질문 예시");
+  const legacyLabel = container.querySelector("#future-why");
+  container.replaceChildren(...examples.map(question => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "btn sub";
+    button.textContent = question;
+    button.addEventListener("click",event => {
+      event.stopPropagation();
+      const input = byId(inputId);
+      input.value = question;
+      if (!input.disabled) input.focus({preventScroll:true});
+    });
+    return button;
+  }));
+  if (legacyLabel) {
+    legacyLabel.hidden = true;
+    container.append(legacyLabel);
+  }
+}
+
+setupQuestionExamples("chat-quick","chat-input",[
+  "하루 일과가 궁금해요", "어떤 회사에 지원해 볼까요?", "무엇부터 준비할까요?"
+]);
+setupQuestionExamples("future-questions","future-chat-input",[
+  "왜 이 길을 골랐어?", "어떤 점이 가장 힘들었어?", "지금 뭘 준비하면 좋을까?"
+]);
+
 const missingAI = "AI 연결 설정에서 API 키를 입력해 주세요.";
 let aiConfigured = false;
 let exploreChatBusy = false;
