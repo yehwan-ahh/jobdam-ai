@@ -1,0 +1,233 @@
+"""Server actions for the HTML JobTalk interface."""
+
+import re
+import xml.etree.ElementTree as ET
+from urllib.parse import urlsplit
+
+import requests
+
+from utils import careernet, company, evidence, kosis, llm, prompts, qnet, roadmap, training, worknet
+from utils.secrets import get_secret
+from utils.cache import cache_success
+
+PATHS = {"취업·이직": "취업/이직", "대학원 진학": "대학원 진학", "창업": "창업"}
+STARTS = [*roadmap.STARTS, "재직 중", "아직 잘 모르겠어요"]
+START_PLANS = {
+    "대학교 1~2학년": ["관심 전공 탐색", "기초 수업과 활동 선택", "방학 실습", "심화 전공과 결과물"],
+    "대학교 3학년": ["전공 경험 정리", "인턴·연구 활동 지원", "방학 프로젝트", "졸업과 진로 전환"],
+    "대학교 4학년·졸업 예정": ["졸업 일정과 마감 확인", "지원 자료 완성", "졸업 직후 계획 실행", "진입 후 성과 정리"],
+    "졸업 후 준비 중": ["준비 격차 점검", "집중 실습과 지원", "결과 반영과 재지원", "경력 기반 만들기"],
+    "사회초년생(1~2년 차)": ["현재 성과 정리", "업무에서 역량 검증", "전환 기회 확보", "전환 후 전문성 확장"],
+    "재직 중": ["경력과 전환 조건 점검", "근무와 준비 병행", "전환 일정 확정", "새 분야의 성과 축적"],
+    "아직 잘 모르겠어요": ["관심사 탐색", "작은 실험 시작", "실험 결과 비교", "방향 결정과 실행"],
+}
+PATH_ACTIONS = {
+    "취업/이직": ["채용 공고를 비교해 핵심 역량을 정리하기", "직무 과제 하나를 포트폴리오로 만들기",
+               "지원과 모의 면접 후 피드백 반영하기", "입사 후 맡은 과제와 성과를 기록하기"],
+    "대학원 진학": ["연구실 두 곳의 논문과 모집 요건 읽기", "작은 연구 질문을 정하고 방법을 시험하기",
+                "지도교수에게 문의하고 연구계획서 작성하기", "연구 결과를 발표 자료나 논문으로 남기기"],
+    "창업": ["잠재 고객에게 문제 상황을 인터뷰하기", "작은 시제품으로 구매 의향 검증하기",
+           "유료 고객을 확보하고 비용과 수익 비교하기", "재구매와 운영 지표를 바탕으로 확장 판단하기"],
+}
+
+
+WORK24_API = "https://www.work24.go.kr/cm/openApi/call/wk/"
+RECRUIT_SOURCE = "고용24 채용정보 (한국고용정보원)"
+
+
+@cache_success(ttl=900)
+def recruitment(keyword):
+    key = get_secret("WORK24_RECRUIT_KEY")
+    if not key:
+        return None
+    try:
+        response = requests.get(WORK24_API + "callOpenApiSvcInfo210L01.do", timeout=8, params={
+            "authKey": key, "callTp": "L", "returnType": "XML",
+            "startPage": 1, "display": 12, "keyword": keyword,
+        })
+        response.raise_for_status()
+        root = ET.fromstring(response.content)
+        if root.findtext("total") is None:
+            return None
+        return [{child.tag: (child.text or "").strip() for child in row} for row in root.iter("wanted")]
+    except (requests.RequestException, ET.ParseError):
+        return None
+
+
+def duty_check():
+    response = requests.get(WORK24_API + "callOpenApiSvcInfo215L11.do", timeout=8, params={
+        "authKey": get_secret("WORK24_DUTY_KEY"), "word": "데이터", "limit": 1, "returnType": "JSON",
+    })
+    response.raise_for_status()
+    data = response.json()
+    return isinstance(data, dict) and bool(data.get("result"))
+
+
+def recruitment_reply(job):
+    if not job:
+        return None
+    rows = recruitment(job)
+    if rows == [] and " " in job:
+        rows = recruitment(job.split()[0])
+    companies = {}
+    for row in rows or []:
+        name, title = row.get("company"), row.get("title")
+        if name and title:
+            companies.setdefault(name, row)
+        if len(companies) == 3:
+            break
+    if not companies:
+        return None
+    lines, links = [], []
+    for name, row in companies.items():
+        details = " · ".join(filter(None, [row["title"], row.get("region"), row.get("closeDt")]))
+        lines.append(f"• {name} — {details}")
+        url = row.get("wantedInfoUrl", "")
+        parsed = urlsplit(url)
+        if parsed.scheme in {"https", "http"} and parsed.hostname in {"www.work24.go.kr", "m.work24.go.kr", "www.work.go.kr"}:
+            links.append({"label": name + " 공고 보기", "url": url})
+    return {"text": "고용24 검색에서 찾은 회사와 공고예요. 상세 자격 요건과 마감일은 공고에서 확인해 주세요.\n"
+                    + "\n".join(lines), "sources": [RECRUIT_SOURCE], "links": links}
+
+
+def company_career_examples(job):
+    if re.search(r"데이터|인공지능|개발|소프트웨어|클라우드|보안|디자인|마케팅|플랫폼|AI|UX|UI", job, re.I):
+        companies = [
+            ("네이버", "플랫폼·클라우드 관련 직군", "https://recruit.navercorp.com/main.do"),
+            ("카카오", "서비스와 데이터·개발 관련 직군", "https://careers.kakao.com/jobs"),
+        ]
+    elif re.search(r"반도체|전자|제조|품질|생산|설비", job):
+        companies = [("삼성", "제조·연구개발·품질 관련 관계사", "https://www.samsungcareers.com/hr/")]
+    else:
+        return None
+    rows = "\n".join(f"• {name} — {reason}을 살펴보세요." for name, reason, _ in companies)
+    return {
+        "text": f"고용24 공고를 가져오지 못했어요. {job} 쪽이라면 아래 공식 채용 페이지부터 살펴볼 만해요.\n"
+                + rows + "\n현재 모집 여부와 지원 요건은 각 페이지에서 확인해 주세요.",
+        "sources": ["기업 공식 채용 페이지"],
+        "links": [{"label": name + " 공식 채용", "url": url} for name, _, url in companies],
+    }
+
+
+def _text(request, key, limit):
+    value = request.get(key)
+    return value.strip()[:limit] if isinstance(value, str) else ""
+
+
+def chat(request):
+    mode = _text(request, "mode", 12)
+    job = _text(request, "job", 80)
+    choice = PATHS.get(_text(request, "path", 30), "")
+    question = _text(request, "question", 140)
+    if not question or mode not in {"mentor", "future", "guide"}:
+        return {"text": "", "label": "질문을 확인해 주세요."}
+    if prompts.find_personal_info(question):
+        return {"text": "개인정보를 빼고 질문을 다시 적어 주세요.", "label": "개인정보 보호"}
+    history = []
+    supplied = request.get("history")
+    if isinstance(supplied, list):
+        for message in supplied[-8:]:
+            if not isinstance(message, dict):
+                continue
+            role = _text(message, "role", 10)
+            content = _text(message, "content", 1200)
+            if role in {"user", "assistant"} and content and not prompts.find_personal_info(content):
+                history.append({"role": role, "content": content})
+    history.append({"role": "user", "content": question})
+    hiring = bool(re.search(r"(회사|기업|직장|스타트업)", question) and re.search(r"(추천|어디|갈 만|알려)", question))
+    if hiring:
+        listings = recruitment_reply(job)
+        if listings:
+            return listings
+        examples = company.smallgiant_examples(job) if job and get_secret("WORK24_SMALLGIANT_KEY") else []
+        if examples:
+            rows = [
+                f"• {row['coNm']} — {row.get('indTpNm') or '업종 미표기'}"
+                + (f", 주요 제품·서비스: {row['coMainProd']}" if row.get("coMainProd") else "")
+                for row in examples
+            ]
+            text = f"{job}와 관련된 업종에서 살펴볼 만한 서울 소재 기업이에요.\n" + "\n".join(rows)
+            return {"text": text + "\n채용은 각 기업의 공고에서 확인해 주세요.", "label": "공공데이터",
+                    "sources": [company.SG_SOURCE]}
+        examples = company_career_examples(job)
+        if examples:
+            return examples
+        return {"text": "공공데이터에서 바로 추천할 기업을 찾지 못했어요. 희망 지역과 관심 산업이나 찾아보고 싶은 회사 이름을 알려주면 범위를 좁힐 수 있어요.", "label": "기업 조회"}
+    if not llm.is_enabled():
+        return {"text": "", "label": "시연 응답 · AI 키 미설정"}
+    role_info, sources = evidence.job_evidence(job, question) if job else (None, [])
+    if mode == "future":
+        path_info, path_sources = evidence.future_evidence(choice)
+        role_info = "\n\n".join(filter(None, [role_info, path_info])) or None
+        sources += path_sources
+        system = prompts.future_system(choice, role_info, job)
+    elif mode == "mentor":
+        system = prompts.job_system(job, role_info)
+    else:
+        system = "너는 한국 청년의 직무 탐색을 돕는 AI 가이드야. 한국어로 짧고 자연스럽게 답하고, 관심사와 전공을 물어보며 직무를 함께 좁혀 줘. 출처와 수치를 지어내지 마."
+    result = llm.generate(system, history)
+    return {"text": prompts.polish(result.text) if result.text else "",
+            "label": "AI 답변" if result.text else "시연 응답 · " + (result.error or "AI 호출 실패"),
+            "sources": list(dict.fromkeys(sources)) if result.text else []}
+
+
+def plan(request):
+    job = _text(request, "job", 80)
+    path = PATHS.get(_text(request, "path", 30))
+    start = _text(request, "start", 40)
+    if not job or not path or start not in STARTS:
+        return {}
+    if llm.is_enabled():
+        try:
+            result = roadmap.generate(roadmap.gather(job, path), start)
+            if result.get("ai") and len(result["stages"]) == 4:
+                return result
+        except Exception:
+            pass
+    return {
+        "stages": [
+            {"title": title, "period": period, "goals": [f"{start} 상황에서 {job} 준비"],
+             "actions": [action]}
+            for title, period, action in zip(START_PLANS[start], roadmap.STAGES, PATH_ACTIONS[path])
+        ],
+        "checkpoint": f"{path} 경로에서 {job} 관련 성과를 쌓고 다음 목표를 정하기",
+        "ai": False,
+    }
+
+
+def connections():
+    return {
+        "ai": ("AI · " + llm.provider_label(), llm.is_enabled,
+               lambda: bool(llm.generate("너는 연결 점검 도구야. OK 한 단어만 답해.", [{"role": "user", "content": "OK"}]).text)),
+        "careernet": ("커리어넷", careernet.is_enabled, lambda: careernet.search_jobs("간호사", 1)),
+        "worknet": ("고용24 직업정보", worknet.is_enabled, lambda: worknet.search_jobs("간호사", 1)),
+        "recruit": ("고용24 채용정보", lambda: bool(get_secret("WORK24_RECRUIT_KEY")), lambda: recruitment("간호사") is not None),
+        "duty": ("고용24 직무정보", lambda: bool(get_secret("WORK24_DUTY_KEY")), duty_check),
+        "training": ("고용24 훈련과정", training.is_enabled, lambda: training.courses("엑셀", limit=1)),
+        "kosis": ("KOSIS", kosis.is_enabled, lambda: kosis.fetch("startup_survival_by_industry", 1) is not None),
+        "qnet": ("Q-Net", qnet.is_enabled, lambda: qnet.schedule("getEList")),
+        "companies": ("고용24 청년친화강소기업", lambda: bool(get_secret("WORK24_SMALLGIANT_KEY")), company.smallgiants),
+        "dart": ("DART 기업공시", lambda: bool(get_secret("DART_API_KEY")), company.dart_corps),
+        "nps": ("국민연금 사업장", lambda: bool(get_secret("NPS_API_KEY")), lambda: company.nps_info("삼성전자")),
+    }
+
+
+def connection_list():
+    return [{"key": key, "label": name, "configured": bool(enabled())}
+            for key, (name, enabled, _) in connections().items()]
+
+
+def check(request):
+    service = connections().get(_text(request, "service", 20))
+    if not service or not service[1]():
+        return {"status": "미설정"}
+    try:
+        ok = bool(service[2]())
+    except Exception:
+        ok = False
+    return {"status": "연결 확인" if ok else "응답 확인 실패"}
+
+
+def dispatch(request):
+    action = {"chat": chat, "plan": plan, "check": check}.get(_text(request, "action", 12))
+    return action(request) if action else {}
