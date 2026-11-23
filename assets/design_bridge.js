@@ -143,12 +143,7 @@ function setupQuestionExamples(containerId,inputId,examples) {
   }
 }
 
-setupQuestionExamples("chat-quick","chat-input",[
-  "하루 일과가 궁금해요", "어떤 회사에 지원해 볼까요?", "무엇부터 준비할까요?"
-]);
-setupQuestionExamples("future-questions","future-chat-input",[
-  "왜 이 길을 골랐어?", "어떤 점이 가장 힘들었어?", "지금 뭘 준비하면 좋을까?"
-]);
+// 질문 버튼은 디자인 원본(직무·길에 맞춘 버튼)을 그대로 써요. 누르면 아래 answer()가 실제 AI에 물어봐요.
 
 const missingAI = "AI 연결이 아직 안 됐어요. 오른쪽 위 'API 연결 상태'에서 API 키를 넣어 주세요.";
 let aiConfigured = false;
@@ -169,15 +164,16 @@ function appendResponseLinks(log,entry) {
   appendJobtalkLinks(bubbles[bubbles.length-1],entry.links);
 }
 
+// 디자인 원본 화면(선배 첫인사·날짜·질문 버튼)을 그대로 그린 뒤, 실제 AI 답변의 링크만 덧붙여요.
+const designRenderChat = renderChat;
 renderChat = function(forceOpen=false) {
-  const entries = chatHistory.get(chatRole) || [];
+  designRenderChat(forceOpen);
   const log = byId("chat-log");
-  byId("explore-chat").hidden = !forceOpen && !chatRole && !entries.length;
-  log.replaceChildren();
-  for (const entry of entries) {
-    if (chatRole) appendMentorMessage(log,entry);
-    else log.append(chatBubble(entry.text,entry.user));
-    appendResponseLinks(log,entry);
+  const bubbles = log.querySelectorAll(".bubble");
+  let index = 0;
+  for (const entry of chatHistory.get(chatRole) || []) {
+    index += (entry.lines ?? [entry.text]).length;
+    if (entry.links?.length) appendJobtalkLinks(bubbles[index-1],entry.links);
   }
   log.scrollTop = log.scrollHeight;
 };

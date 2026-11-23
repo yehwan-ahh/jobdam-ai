@@ -23,9 +23,6 @@ body > .jobtalk-editor{display:none!important}
 #jobtalk-api-list button{flex:none;padding:3px 6px;border:1px solid #626857;border-radius:6px;background:#1d2115;color:#f4f5e8}
 #jobtalk-api-list button:disabled{opacity:.5}
 #chat-log .bubble,#future-chat-log .bubble{white-space:pre-wrap}
-#future-headline,#future-story,.future-reflections,#path-check,.mentor-chat-note{display:none!important}
-#explore-guide .chat-mode small,#explore-chat .explore-section-head p{display:none}
-.jobtalk-suggest-label{margin:0;padding:0 12px;color:var(--muted);font-size:.75rem}
 .roadmap-star-track svg.jobtalk-mobile-stars{display:none}
 @media(max-width:640px){
   .roadmap-star-track svg.jobtalk-mobile-stars{display:block;width:64px}
