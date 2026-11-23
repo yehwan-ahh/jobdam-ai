@@ -177,7 +177,7 @@ def _nps_get(op: str, **params) -> list[dict]:
         return []
     try:
         body = requests.get(NPS_URL + op, params={"serviceKey": key, "dataType": "json", "pageNo": 1,
-                                                  "numOfRows": params.pop("rows", 20), **params}, timeout=8).json()
+                                                  "numOfRows": params.pop("rows", 20), **params}, timeout=20).json()  # 국민연금 API는 6~8초 걸릴 때가 많아요
         items = (body.get("response", {}).get("body", {}).get("items") or {})
         items = items.get("item", []) if isinstance(items, dict) else []
         return items if isinstance(items, list) else [items]
