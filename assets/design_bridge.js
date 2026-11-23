@@ -375,3 +375,42 @@ renderRoadmap = function() {
 };
 byId("stage").removeEventListener("change",buildRoadmapDemo);
 byId("stage").addEventListener("change",renderRoadmap);
+
+// ── 점수 자료가 없는 직무(학과 연계·새 직업)는 고용24 직업정보로 적합도를 채워요 ──────────
+// 화면에 그 직무가 보일 때만 묶어서 물어보고(한 번에 최대 12개), 받은 뒤 그 줄만 다시 그려요.
+const designExploreJobRow = exploreJobRow;
+const matchQueue = new Set();
+const matchTried = new Set();
+let matchTimer = null;
+let matchBusy = false;
+exploreJobRow = function(role,fit) {
+  if (!role.match && !matchTried.has(role.name)) {
+    matchQueue.add(role.name);
+    clearTimeout(matchTimer);
+    matchTimer = setTimeout(fillMissingMatches,300);
+  }
+  return designExploreJobRow(role,fit);
+};
+async function fillMissingMatches() {
+  if (matchBusy) return;
+  const names = [...matchQueue].slice(0,12);
+  if (!names.length) return;
+  names.forEach(name => { matchQueue.delete(name); matchTried.add(name); });
+  matchBusy = true;
+  const result = await requestJobtalk({action:"traits",names});
+  matchBusy = false;
+  const matches = result.matches || {};
+  const filled = roles.filter(role => !role.match && matches[role.name]);
+  filled.forEach(role => { role.match = matches[role.name]; });
+  if (filled.length) {
+    rankedProfile = null;  // 적합도 순위를 새로 계산하게
+    document.querySelectorAll("li.explore-job").forEach(item => {
+      const role = filled.find(r => r.name === item.querySelector("h3")?.textContent);
+      if (!role) return;
+      const holder = document.createElement("div");
+      holder.innerHTML = designExploreJobRow(role,fitForRole(role));
+      if (holder.firstElementChild) item.replaceWith(holder.firstElementChild);
+    });
+  }
+  if (matchQueue.size) fillMissingMatches();
+}

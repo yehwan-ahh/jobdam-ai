@@ -204,14 +204,12 @@ def connections():
                lambda: bool(llm.generate("너는 연결 점검 도구야. OK 한 단어만 답해.", [{"role": "user", "content": "OK"}]).text)),
         "careernet": ("커리어넷", careernet.is_enabled, lambda: careernet.search_jobs("간호사", 1)),
         "worknet": ("고용24 직업정보", worknet.is_enabled, lambda: worknet.search_jobs("간호사", 1)),
-        "recruit": ("고용24 채용정보", lambda: bool(get_secret("WORK24_RECRUIT_KEY")), lambda: recruitment("간호사") is not None),
         "duty": ("고용24 직무정보", lambda: bool(get_secret("WORK24_DUTY_KEY")), duty_check),
         "training": ("고용24 훈련과정", training.is_enabled, lambda: training.courses("엑셀", limit=1)),
         "kosis": ("KOSIS", kosis.is_enabled, lambda: kosis.fetch("startup_survival_by_industry", 1) is not None),
-        "qnet": ("Q-Net", qnet.is_enabled, lambda: qnet.schedule("getEList")),
         "companies": ("고용24 청년친화강소기업", lambda: bool(get_secret("WORK24_SMALLGIANT_KEY")), company.smallgiants),
         "dart": ("DART 기업공시", lambda: bool(get_secret("DART_API_KEY")), company.dart_corps),
-        "nps": ("국민연금 사업장", lambda: bool(get_secret("NPS_API_KEY")), lambda: company.nps_info("삼성전자")),
+        "nps": ("국민연금 사업장", lambda: bool(get_secret("NPS_API_KEY")), lambda: company.nps_info("카카오뱅크")),
     }
 
 
@@ -271,6 +269,32 @@ def byok(request):
     return {"status": "저장됨" if st.session_state[llm.BYOK_STATE_KEY] else "지움"}
 
 
+def traits(request):
+    """디자인에 점수 자료가 없는 직무(학과 연계·새 직업)의 흥미·가치·능력을 고용24 직업정보에서 가져와요.
+    {"matches": {직무명: {"types": [RIASEC], "values": [...], "abilities": [...]}}}"""
+    from concurrent.futures import ThreadPoolExecutor
+
+    from utils import profile as profile_mod
+
+    names = [n.strip()[:60] for n in (request.get("names") or []) if isinstance(n, str) and n.strip()][:12]
+
+    def one(name):
+        try:
+            t = profile_mod.job_traits(name)
+        except Exception:
+            return name, None
+        if not t:
+            return name, None
+        top = lambda pairs, k: [x for x, _ in sorted(pairs, key=lambda p: -p[1])][:k]  # noqa: E731
+        match = {"types": top(t["interest"], 3), "values": top(t["values"], 3), "abilities": top(t["abilities"], 4)}
+        return name, match if (match["types"] or match["values"] or match["abilities"]) else None
+
+    with ThreadPoolExecutor(6) as ex:
+        results = list(ex.map(one, names))
+    return {"matches": {n: m for n, m in results if m}}
+
+
 def dispatch(request):
-    action = {"chat": chat, "plan": plan, "check": check, "resource": resource, "byok": byok}.get(_text(request, "action", 12))
+    action = {"chat": chat, "plan": plan, "check": check, "resource": resource, "byok": byok,
+              "traits": traits}.get(_text(request, "action", 12))
     return action(request) if action else {}
