@@ -139,7 +139,8 @@ def chat(request):
     else:
         system = "너는 한국 청년의 직무 탐색을 돕는 AI 가이드야. 한국어로 짧고 자연스럽게 답하고, 관심사와 전공을 물어보며 직무를 함께 좁혀 줘. 출처와 수치를 지어내지 마."
     result = llm.generate(system, history)
-    return {"text": prompts.polish(result.text) if result.text else "",
+    text = (result.text if mode == "future" else prompts.polish(result.text)) if result.text else ""  # 3년 뒤의 나는 반말 그대로
+    return {"text": text,
             "label": "AI 답변" if result.text else (result.error or "AI 응답을 받지 못했어요. 다시 시도해 주세요."),
             "links": listings["links"] if result.text and listings else [],
             "sources": list(dict.fromkeys(sources)) if result.text else []}

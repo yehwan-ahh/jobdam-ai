@@ -223,7 +223,7 @@ if prompt:
                 st.caption(":material/route: 답을 못 받아도 아래 '이 길로 커리어 로드맵 만들기'로 넘어갈 수 있어요. 공공데이터로 기본 로드맵을 그려 줘요.")
                 history.pop()
             else:
-                reply = polish(result.text)
+                reply = result.text  # 3년 뒤의 나는 친근한 반말 그대로
                 st.markdown(reply)
                 if used:
                     show_sources(used)
