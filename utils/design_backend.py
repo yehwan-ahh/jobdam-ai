@@ -138,7 +138,8 @@ def chat(request):
         system = prompts.job_system(job, role_info)
     else:
         system = "너는 한국 청년의 직무 탐색을 돕는 AI 가이드야. 한국어로 짧고 자연스럽게 답하고, 관심사와 전공을 물어보며 직무를 함께 좁혀 줘. 출처와 수치를 지어내지 마."
-    result = llm.generate(system, history)
+    # 직무 선배 지침은 {"answer", "sources"} JSON으로 답하게 되어 있어서, JSON 모드로 받아 대답만 꺼내요
+    result = llm.generate(system, history, json_mode=(mode == "mentor"))
     text = _clean_reply(result.text) if result.text else ""
     if text and mode != "future":  # 3년 뒤의 나는 반말 그대로
         text = prompts.polish(text)
@@ -165,6 +166,8 @@ def _clean_reply(raw: str) -> str:
             if isinstance(value, str) and value.strip():
                 text = value.strip()
                 break
+    # 대답 뒤에 '"sources": [...]' 같은 근거 목록이 글로 붙어 나오면 잘라 내요(출처는 아래 '출처 ·' 줄로 따로 보여 줘요)
+    text = re.split(r'\n?\s*[",]?\s*"?(?:sources|source|출처|근거)"?\s*:\s*\[', text, maxsplit=1)[0].rstrip(' ,"\n')
     text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)  # **굵게** 표시 제거
     text = re.sub(r"(?m)^#{1,6}\s*", "", text)  # 제목 기호 제거
     text = re.sub(r"(?m)^\s*[-*]\s+", "· ", text)  # 목록 기호는 가운뎃점으로
