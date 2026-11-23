@@ -139,11 +139,36 @@ def chat(request):
     else:
         system = "너는 한국 청년의 직무 탐색을 돕는 AI 가이드야. 한국어로 짧고 자연스럽게 답하고, 관심사와 전공을 물어보며 직무를 함께 좁혀 줘. 출처와 수치를 지어내지 마."
     result = llm.generate(system, history)
-    text = (result.text if mode == "future" else prompts.polish(result.text)) if result.text else ""  # 3년 뒤의 나는 반말 그대로
+    text = _clean_reply(result.text) if result.text else ""
+    if text and mode != "future":  # 3년 뒤의 나는 반말 그대로
+        text = prompts.polish(text)
+    short = [re.sub(r"\s*\(.*?\)", "", s).strip() for s in sources]  # '고용24 직업정보 (한국고용정보원, …)' → '고용24 직업정보'
     return {"text": text,
-            "label": "AI 답변" if result.text else (result.error or "AI 응답을 받지 못했어요. 다시 시도해 주세요."),
-            "links": listings["links"] if result.text and listings else [],
-            "sources": list(dict.fromkeys(sources)) if result.text else []}
+            "label": "AI 답변" if text else (result.error or "AI 응답을 받지 못했어요. 다시 시도해 주세요."),
+            "links": listings["links"] if text and listings else [],
+            "sources": list(dict.fromkeys(x for x in short if x)) if text else []}
+
+
+def _clean_reply(raw: str) -> str:
+    """AI가 지침대로 {"answer": …, "sources": […]} JSON이나 마크다운으로 답해도, 채팅에는 대답 글만 깔끔하게."""
+    text = raw.strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text).strip()
+    if text.startswith("{"):
+        data = llm._parse_json(text)
+        for key in ("answer", "reply", "response", "message", "대답", "답변"):
+            value = data.get(key)
+            if isinstance(value, dict):
+                value = next((v for v in value.values() if isinstance(v, str)), "")
+            if isinstance(value, list):
+                value = "\n".join(str(v) for v in value)
+            if isinstance(value, str) and value.strip():
+                text = value.strip()
+                break
+    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)  # **굵게** 표시 제거
+    text = re.sub(r"(?m)^#{1,6}\s*", "", text)  # 제목 기호 제거
+    text = re.sub(r"(?m)^\s*[-*]\s+", "· ", text)  # 목록 기호는 가운뎃점으로
+    return text.strip()
 
 
 def plan(request):
