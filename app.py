@@ -18,20 +18,38 @@ st.set_page_config(
 if "visited" not in st.session_state:
     st.session_state.visited = set()
 
+from utils.design_page import render as render_design  # noqa: E402
+
+
+def _design(view: str | None, name: str):
+    """첨부 디자인(JobTalk)을 해당 단계로 여는 페이지."""
+    def page() -> None:
+        render_design(view)
+    page.__name__ = name
+    return page
+
+
+# /profile · /panel · /future · /roadmap 주소도 모두 첨부 디자인으로 열어요(예전 화면은 classic- 주소로만 남겨 둠)
 PAGES = {
-    "final": st.Page("app_pages/final_design.py", title="잡담 최종 디자인", default=True),
-    "home": st.Page("app_pages/home.py", title="시작", icon=":material/home:"),
-    "profile": st.Page("app_pages/profile.py", title="현재의 나", icon=":material/person_search:"),
-    "panel": st.Page("app_pages/panel.py", title="직무 탐색", icon=":material/groups:"),
-    "future": st.Page("app_pages/future.py", title="3년 뒤의 나", icon=":material/timeline:"),
-    "roadmap": st.Page("app_pages/roadmap.py", title="커리어 로드맵", icon=":material/route:"),
+    "final": st.Page("app_pages/final_design.py", title="잡담 Job談", default=True),
+    "home": st.Page(_design(None, "home"), title="시작", url_path="home"),
+    "profile": st.Page(_design("assessment", "profile"), title="현재의 나", url_path="profile"),
+    "panel": st.Page(_design("explore", "panel"), title="직무 탐색", url_path="panel"),
+    "future": st.Page(_design("future", "future"), title="3년 뒤의 나", url_path="future"),
+    "roadmap": st.Page(_design("roadmap", "roadmap"), title="커리어 로드맵", url_path="roadmap"),
     "data": st.Page("app_pages/data.py", title="데이터와 원칙", icon=":material/verified:"),
     "about": st.Page("app_pages/about.py", title="프로젝트 소개", icon=":material/info:"),
+    "c_home": st.Page("app_pages/home.py", title="(예전) 시작", url_path="classic-home"),
+    "c_profile": st.Page("app_pages/profile.py", title="(예전) 현재의 나", url_path="classic-profile"),
+    "c_panel": st.Page("app_pages/panel.py", title="(예전) 직무 탐색", url_path="classic-panel"),
+    "c_future": st.Page("app_pages/future.py", title="(예전) 3년 뒤의 나", url_path="classic-future"),
+    "c_roadmap": st.Page("app_pages/roadmap.py", title="(예전) 커리어 로드맵", url_path="classic-roadmap"),
 }
+DESIGN = {"final", "home", "profile", "panel", "future", "roadmap"}
 # 메뉴는 아래에서 직접 그려요(위쪽 4단계 진행 메뉴). 기본 메뉴는 숨김.
 page = st.navigation(list(PAGES.values()), position="hidden")
 
-if page is PAGES["final"]:
+if any(page is PAGES[k] for k in DESIGN):
     page.run()
     hot_reload.remember()
     st.stop()

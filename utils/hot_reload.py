@@ -31,6 +31,8 @@ ORDER = [
     "utils.profile",
     "utils.roadmap",
     "utils.status",
+    "utils.design_backend",
+    "utils.design_page",
 ]
 _MTIMES: dict[str, float] = {}
 
