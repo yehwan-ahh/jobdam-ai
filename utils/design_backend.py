@@ -4,7 +4,10 @@ import re
 import xml.etree.ElementTree as ET
 from urllib.parse import urlsplit
 
+import datetime as dt
+
 import requests
+import streamlit as st
 
 from utils import careernet, company, evidence, kosis, llm, prompts, qnet, roadmap, training, worknet
 from utils.secrets import get_secret
@@ -199,6 +202,46 @@ def check(request):
     return {"status": "연결 확인" if ok else "응답 확인 실패"}
 
 
+def _date(v: str) -> str:
+    """'20261201'·'2026-12-01'·'2026.12.01' → '2026-12-01' (화면이 오늘 날짜와 비교해요)."""
+    d = re.sub(r"[^0-9]", "", v or "")
+    return f"{d[:4]}-{d[4:6]}-{d[6:8]}" if len(d) >= 8 else ""
+
+
+def resource(request):
+    """로드맵 카드의 '국비 교육'(고용24 훈련과정)·'관련 자격'(Q-Net 시험일정) 공개 정보."""
+    kind, key = _text(request, "kind", 20), _text(request, "key", 60)
+    now = dt.datetime.now().isoformat(timespec="seconds")
+    if not key:
+        return {"status": "unavailable"}
+    if kind == "training":
+        rows = training.courses(key, limit=3) if training.is_enabled() else None
+        if rows is None:
+            return {"status": "unavailable"}
+        return {"status": "ok", "checkedAt": now, "rows": [
+            {"title": r["title"], "provider": r.get("org", ""), "area": r.get("area", ""),
+             "start": _date(r.get("start", "")), "end": _date(r.get("end", "")),
+             "url": r["link"] if r.get("link", "").startswith("https://www.work24.go.kr/") else ""}
+            for r in rows]}
+    if kind == "certificate":
+        if not qnet.is_enabled() or not qnet.kind_of(key):
+            return {"status": "ok", "checkedAt": now, "rows": []}
+        rows, past = qnet.next_rounds(key, 1)
+        if not rows:
+            return {"status": "ok", "checkedAt": now, "rows": []}
+        r = rows[0]
+        return {"status": "ongoing", "checkedAt": now, "source": "https://www.q-net.or.kr/",
+                "apply": f"{r['회차']} 필기 {r['필기 접수']}" + (" (올해 일정 참고)" if past else ""),
+                "exam": f"필기 {r['필기 시험']} · 실기 {r['실기 시험']}"}
+    return {"status": "unavailable"}
+
+
+def byok(request):
+    """'API 연결 상태'에서 넣은 내 API 키. 이 접속(세션)에만 두고 저장·기록하지 않아요."""
+    st.session_state[llm.BYOK_STATE_KEY] = _text(request, "key", 300)
+    return {"status": "저장됨" if st.session_state[llm.BYOK_STATE_KEY] else "지움"}
+
+
 def dispatch(request):
-    action = {"chat": chat, "plan": plan, "check": check}.get(_text(request, "action", 12))
+    action = {"chat": chat, "plan": plan, "check": check, "resource": resource, "byok": byok}.get(_text(request, "action", 12))
     return action(request) if action else {}

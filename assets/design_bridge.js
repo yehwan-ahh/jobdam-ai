@@ -27,10 +27,28 @@ apiPanel.innerHTML = '<summary>API 연결 상태</summary><div id="jobtalk-api-l
 document.querySelector(".top > .shell").append(apiPanel);
 const checkedConnections = new Map();
 
+// 내 API 키 입력(이 접속에만 쓰고 서버에 저장·기록하지 않아요)
+const keyForm = document.createElement("form");
+keyForm.id = "jobtalk-key-form";
+keyForm.innerHTML = '<input type="password" autocomplete="off" placeholder="내 AI API 키 (선택)" aria-label="내 AI API 키"><button type="submit">적용</button>';
+const keyNote = document.createElement("small");
+keyNote.id = "jobtalk-key-note";
+keyNote.textContent = "팀 키가 안 될 때만 넣어 주세요. 이 창을 닫으면 사라지고 저장하지 않아요.";
+keyForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  const input = keyForm.querySelector("input");
+  const button = keyForm.querySelector("button");
+  button.disabled = true;
+  const result = await requestJobtalk({action:"byok", key:input.value.trim()});
+  input.value = "";
+  button.disabled = false;
+  keyNote.textContent = result.status === "저장됨" ? "내 키를 적용했어요. 이 창을 닫으면 사라져요." : "내 키를 지웠어요.";
+});
+
 function showJobtalkConnections(connections) {
   const list = byId("jobtalk-api-list");
   if (!Array.isArray(connections)) return;
-  list.replaceChildren(...connections.map(service => {
+  list.replaceChildren(keyForm, keyNote, ...connections.map(service => {
     const row = document.createElement("div");
     const label = document.createElement("span");
     label.textContent = service.label + " · " + (checkedConnections.get(service.key) ||
@@ -132,7 +150,7 @@ setupQuestionExamples("future-questions","future-chat-input",[
   "왜 이 길을 골랐어?", "어떤 점이 가장 힘들었어?", "지금 뭘 준비하면 좋을까?"
 ]);
 
-const missingAI = "AI 연결 설정에서 API 키를 입력해 주세요.";
+const missingAI = "AI 연결이 아직 안 됐어요. 오른쪽 위 'API 연결 상태'에서 API 키를 넣어 주세요.";
 let aiConfigured = false;
 let exploreChatBusy = false;
 let futureChatBusy = false;
