@@ -65,6 +65,23 @@ html = html.replace("AI 선배 · 예시 대화", "AI 선배", 1).replace(
 )
 html = html.replace('\n  byId("future-chat-context").textContent = `${role.name} × ${path.name} · 예시 대화`;',
                     '\n  byId("future-chat-context").textContent = `${role.name} × ${path.name}`;', 1)
+# '3년 뒤의 나' 고정 문구도 과거의 나에게 말하듯 친근한 반말로(디자인 원본 파일은 그대로 두고 여기서 바꿔요)
+FUTURE_BANMAL = {
+    'story:"일찍 실무에 들어와서 경력과 소득이 먼저 쌓였어요. 대신 처음 1년은 회사 방식에 맞추느라 내가 진짜 원하는 게 뭔지 다시 고민하기도 했어요."':
+    'story:"일찍 실무에 들어와서 경력과 소득이 먼저 쌓였어. 대신 처음 1년은 회사 방식에 맞추느라 내가 진짜 원하는 게 뭔지 다시 고민하기도 했어."',
+    'story:"전공을 깊게 파고들면서 연구직·전문직 문이 열렸어요. 다만 2년 동안 소득 공백이 있었고, 지도교수와 연구실 선택이 생각보다 훨씬 중요했어요."':
+    'story:"전공을 깊게 파고들면서 연구직·전문직 문이 열렸어. 다만 2년 동안 소득 공백이 있었고, 지도교수와 연구실 선택이 생각보다 훨씬 중요했어."',
+    'story:"내 아이디어를 직접 시장에서 검증해 봤다는 게 가장 큰 자산이에요. 수입이 불안정했던 시기가 길었고, 정부 지원사업을 일찍 알아본 게 큰 도움이 됐어요."':
+    'story:"내 아이디어를 직접 시장에서 검증해 봤다는 게 가장 큰 자산이었어. 수입이 불안정했던 시기가 길었고, 정부 지원사업을 일찍 알아본 게 큰 도움이 됐어."',
+    'check:"관심 직무의 실제 채용 공고를 비교해 필요한 역량을 확인해보세요."':
+    'check:"관심 직무의 실제 채용 공고를 비교해서 필요한 역량을 확인해 봐."',
+    'check:"관심 주제와 맞는 연구실을 찾아 연구 분야와 지원 요건을 비교해보세요."':
+    'check:"관심 주제와 맞는 연구실을 찾아서 연구 분야랑 지원 요건을 비교해 봐."',
+    'check:"잠재 사용자에게 어떤 문제를 겪는지 물어보고 해결책의 필요성을 확인해보세요."':
+    'check:"잠재 사용자한테 어떤 문제를 겪는지 물어보고, 해결책이 정말 필요한지 확인해 봐."',
+}
+for _old, _new in FUTURE_BANMAL.items():
+    html = html.replace(_old, _new, 1)
 # 주소(/profile·/panel·/future·/roadmap)에 맞는 단계로 처음 열어요
 _before, _show, _after = html.rpartition("\nshowView();\n")
 html = (_before + '\nif (!location.hash && window.JOBTALK_START) { try { location.hash = "#" + window.JOBTALK_START; } catch (e) {} }'
